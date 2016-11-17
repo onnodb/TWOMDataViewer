@@ -6,6 +6,9 @@ classdef TWOMDataViewer < handle
         % Currently shown directory.
         currentDir;
 
+        % Extension of files to show.
+        fileFilter = 'tdms';
+
     end
 
     % ------------------------------------------------------------------------
@@ -21,10 +24,25 @@ classdef TWOMDataViewer < handle
 
     methods
 
-        function [this] = TWOMDataViewer(c)
+        function [self] = TWOMDataViewer(startDir)
             % Set up GUI.
-            this.createGui();
-            this.browseTo(pwd());
+            self.createGui();
+            if nargin > 0
+                self.browseTo(startDir);
+            else
+                self.browseTo(pwd());
+            end
+        end
+
+        function browseTo(self, newDir)
+            if exist(newDir, 'dir') == 7
+                self.currentDir = newDir;
+                self.gui.dirpanel.edit.String = newDir;
+                self.refreshDirectory();
+            else
+                errordlg(['Directory ' newDir ' not found']);
+                self.gui.dirpanel.edit.String = self.currentDir;
+            end
         end
 
     end
@@ -33,12 +51,12 @@ classdef TWOMDataViewer < handle
 
     methods (Access=private)
 
-        function createGui(this)
-            this.gui = struct();
+        function createGui(self)
+            self.gui = struct();
 
             % ----- Window
             screenSize = get(0, 'ScreenSize');
-            this.gui.window = figure(...
+            self.gui.window = figure(...
                 'Name',             'TWOM Data Viewer' ...
               , 'NumberTitle',      'off' ...
               , 'MenuBar',          'none' ...
@@ -49,68 +67,82 @@ classdef TWOMDataViewer < handle
 
             % ----- Menu
             % + File
-            this.gui.menu.file = uimenu(this.gui.window, 'Label', 'File');
-            this.gui.menu.file_browse = uimenu(this.gui.menu.file, ...
+            self.gui.menu.file = uimenu(self.gui.window, 'Label', 'File');
+            self.gui.menu.file_browse = uimenu(self.gui.menu.file, ...
                   'Label',          'Browse...' ...
-                , 'Callback',       @(h,e) this.onBrowseBtnClick(h, e) ...
+                , 'Callback',       @(h,e) self.onBrowseBtnClick(h, e) ...
                 );
-            this.gui.menu.file_exit = uimenu(this.gui.menu.file, ...
+            self.gui.menu.file_exit = uimenu(self.gui.menu.file, ...
                   'Separator',      'on' ...
                 , 'Label',          'Exit' ...
-                , 'Callback',       @(h,e) this.onFileExit(h, e) ...
+                , 'Callback',       @(h,e) self.onFileExit(h, e) ...
               );
 
             % ----- Main columns
-            this.gui.root = uiextras.HBoxFlex('Parent', this.gui.window);
-            this.gui.root.Spacing = 5;
+            self.gui.root = uiextras.HBoxFlex('Parent', self.gui.window);
+            self.gui.root.Spacing = 5;
 
             % ----- Left panel
-            this.gui.left.panel = uiextras.VBox('Parent', this.gui.root);
+            self.gui.left.panel = uiextras.VBox('Parent', self.gui.root);
 
-            this.gui.dirpanel.panel = uiextras.HBox('Parent', this.gui.left.panel);
-            this.gui.dirpanel.edit = uicontrol(...
-                  'Parent',         this.gui.dirpanel.panel ...
+            self.gui.dirpanel.panel = uiextras.HBox('Parent', self.gui.left.panel);
+            self.gui.dirpanel.edit = uicontrol(...
+                  'Parent',         self.gui.dirpanel.panel ...
                 , 'Style',          'edit' ...
                 , 'String',         '' ...
-                , 'Callback',       @(h,e) this.onDirChange ...
+                , 'Callback',       @(h,e) self.onDirChange ...
                 );
-            this.gui.dirpanel.browseBtn = uicontrol(...
-                  'Parent',         this.gui.dirpanel.panel ...
+            self.gui.dirpanel.browseBtn = uicontrol(...
+                  'Parent',         self.gui.dirpanel.panel ...
                 , 'Style',          'pushbutton' ...
                 , 'String',         'Browse...' ...
-                , 'Callback',       @(h,e) this.onBrowseBtnClick ...
+                , 'Callback',       @(h,e) self.onBrowseBtnClick ...
                 );
-            this.gui.dirpanel.panel.Sizes = [-1 70];
+            self.gui.dirpanel.panel.Sizes = [-1 70];
 
-            this.gui.dirlisting = uicontrol(...
-                  'Parent',         this.gui.left.panel ...
+            self.gui.dirlisting = uicontrol(...
+                  'Parent',         self.gui.left.panel ...
                 , 'Style',          'listbox' ...
-                , 'Callback',       @(h,e) this.onDirListingChange ...
+                , 'Callback',       @(h,e) self.onDirListingChange ...
                 );
 
-            this.gui.left.panel.Sizes = [20 -1];
+            self.gui.left.panel.Sizes = [20 -1];
 
             % ----- Center, main panel
-            this.gui.main.panel = uiextras.VBox('Parent', this.gui.root);
+            self.gui.main.panel = uiextras.VBox('Parent', self.gui.root);
 
-            this.gui.root.Sizes         = [screenSize(3)/6 -1];
-            this.gui.root.MinimumWidths = [200 200];
+            self.gui.root.Sizes         = [screenSize(3)/6 -1];
+            self.gui.root.MinimumWidths = [200 200];
 
         end
 
-        function browseTo(this, newDir)
-            if exist(newDir, 'dir') == 7
-                this.currentDir = newDir;
-                this.gui.dirpanel.edit.String = newDir;
-                this.refreshDirectory();
-            else
-                errordlg(['Directory ' newDir ' not found']);
-                this.gui.dirpanel.edit.String = this.currentDir;
+        function refreshDirectory(self)
+            list = self.gui.dirlisting;
+
+            listing = dir(self.currentDir);
+
+            % List subdirectories.
+            files = {'..'};
+            for i = 1:length(listing)
+                if listing(i).isdir ...
+                        && ~fileattrib(fullfile(self.currentDir, listing(i).name), 'h') ...
+                        && listing(i).name(1) ~= '.'
+                    files{end+1} = listing(i).name;
+                end
             end
-        end
 
-        function refreshDirectory(this)
-            % TODO
+            % List files matching filter.
+            for i = 1:length(listing)
+                [~, ~, fileExt] = fileparts(listing(i).name);
+                if ~listing(i).isdir ...
+                        && (strcmpi(fileExt, ['.' self.fileFilter]) || isempty(self.fileFilter)) ...
+                        && ~fileattrib(fullfile(self.currentDir, listing(i).name), 'h') ...
+                        && listing(i).name(1) ~= '.'
+                    files{end+1} = listing(i).name;
+                end
+            end
+
+            list.String = files;
         end
 
     end
@@ -121,23 +153,23 @@ classdef TWOMDataViewer < handle
 
         % ----- CALLBACK METHODS
 
-        function onBrowseBtnClick(this, ~, ~)
-            newDir = uigetdir(this.currentDir);
+        function onBrowseBtnClick(self, ~, ~)
+            newDir = uigetdir(self.currentDir);
             if newDir ~= 0
-                this.browseTo(newDir);
+                self.browseTo(newDir);
             end
         end
 
-        function onDirChange(this, ~, ~)
-            this.browseTo(this.gui.dirpanel.edit.String);
+        function onDirChange(self, ~, ~)
+            self.browseTo(self.gui.dirpanel.edit.String);
         end
 
-        function onDirListingChange(this, ~, ~)
+        function onDirListingChange(self, ~, ~)
             % TODO
         end
 
-        function onFileExit(this, ~, ~)
-            delete(this.gui.window);
+        function onFileExit(self, ~, ~)
+            delete(self.gui.window);
         end
 
     end

@@ -4,14 +4,21 @@ function twomdv(varargin)
 % SYNTAX:
 % twomdv
 % twomdv(dir)
+% twomdv(dir, 'key', value, ___)
 %
 % INPUT:
 % dir = starting directory
 
-twomdv = TWOMDataViewer();
+if ~isempty(varargin)
+    twomdv = TWOMDataViewer(varargin{1});
+else
+    twomdv = TWOMDataViewer();
+end
 
 if ~isempty(varargin)
-    twomdv.browseTo(varargin{1});
+    if length(varargin) > 1
+        parseClassArgs(varargin(2:end), twomdv);
+    end
 end
 
 end
