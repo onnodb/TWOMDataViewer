@@ -11,6 +11,7 @@ classdef TWOMDataFile < handle
 
     properties (Dependent)
 
+        DateTime;
         FileFormatVersion;
         ID;
 
@@ -61,6 +62,11 @@ classdef TWOMDataFile < handle
     % ------------------------------------------------------------------------
 
     methods   % property getters
+
+        function [val] = get.DateTime(self)
+            s = self.getTdmsProperty('Date_time');
+            val = datetime(s, 'InputFormat', 'yyyyMMdd-HHmmss');
+        end
 
         function [val] = get.FileFormatVersion(self)
             val = uint8(sscanf(self.getTdmsProperty('File_Format_Version'), '%u'));
