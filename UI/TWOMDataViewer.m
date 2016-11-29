@@ -45,6 +45,17 @@ classdef TWOMDataViewer < handle
             end
         end
 
+        function browseUp(self)
+            [pathStr, ~, ~] = fileparts(self.currentDir);
+            if ~isempty(pathStr)
+                self.browseTo(pathStr);
+            end
+        end
+
+        function loadFile(self, file)
+            % TODO
+        end
+
     end
 
     % ------------------------------------------------------------------------
@@ -70,12 +81,12 @@ classdef TWOMDataViewer < handle
             self.gui.menu.file = uimenu(self.gui.window, 'Label', 'File');
             self.gui.menu.file_browse = uimenu(self.gui.menu.file, ...
                   'Label',          'Browse...' ...
-                , 'Callback',       @(h,e) self.onBrowseBtnClick(h, e) ...
+                , 'Callback',       @(h,e) self.onBrowseBtnClick(h,e) ...
                 );
             self.gui.menu.file_exit = uimenu(self.gui.menu.file, ...
                   'Separator',      'on' ...
                 , 'Label',          'Exit' ...
-                , 'Callback',       @(h,e) self.onFileExit(h, e) ...
+                , 'Callback',       @(h,e) self.onFileExit(h,e) ...
               );
 
             % ----- Main columns
@@ -90,20 +101,23 @@ classdef TWOMDataViewer < handle
                   'Parent',         self.gui.dirpanel.panel ...
                 , 'Style',          'edit' ...
                 , 'String',         '' ...
-                , 'Callback',       @(h,e) self.onDirChange ...
+                , 'Callback',       @(h,e) self.onDirChange(h,e) ...
                 );
             self.gui.dirpanel.browseBtn = uicontrol(...
                   'Parent',         self.gui.dirpanel.panel ...
                 , 'Style',          'pushbutton' ...
                 , 'String',         'Browse...' ...
-                , 'Callback',       @(h,e) self.onBrowseBtnClick ...
+                , 'Callback',       @(h,e) self.onBrowseBtnClick(h,e) ...
                 );
             self.gui.dirpanel.panel.Sizes = [-1 70];
 
             self.gui.dirlisting = uicontrol(...
                   'Parent',         self.gui.left.panel ...
                 , 'Style',          'listbox' ...
-                , 'Callback',       @(h,e) self.onDirListingChange ...
+                , 'Min',            0 ...
+                , 'Max',            0 ...       % no multi-select
+                , 'Callback',       @(h,e) self.onDirListingChange(h,e) ...
+                , 'KeyPressFcn',    @(h,e) self.onDirListingKeyPress(h,e) ...
                 );
 
             self.gui.left.panel.Sizes = [20 -1];
@@ -143,6 +157,7 @@ classdef TWOMDataViewer < handle
             end
 
             list.String = files;
+            list.Value  = 1;
         end
 
     end
@@ -165,7 +180,48 @@ classdef TWOMDataViewer < handle
         end
 
         function onDirListingChange(self, ~, ~)
-            % TODO
+            if ~isempty(self.gui.dirlisting.Value) ...
+                    && isscalar(self.gui.dirlisting.Value)
+                if strcmp(self.gui.window.SelectionType, 'open')
+                    % Double-click
+                    item = self.gui.dirlisting.String{self.gui.dirlisting.Value};
+                    if strcmp(item, '..')
+                        self.browseUp();
+                    elseif isdir(fullfile(self.currentDir, item))
+                        self.browseTo(fullfile(self.currentDir, item));
+                    else
+                        % Ignore double-clicks on regular file.
+                    end
+                else
+                    % Normal click
+                    item = self.gui.dirlisting.String{self.gui.dirlisting.Value};
+                    self.loadFile(fullfile(self.currentDir, item));
+                end
+            else
+                self.gui.dirlisting.Value = 1;
+                    % Work around MATLAB bug where user can accidentally
+                    % unselect all items, which is an invalid state for a
+                    % non-multi-select listbox.
+            end
+        end
+
+        function onDirListingKeyPress(self, ~, e)
+            if ~isempty(self.gui.dirlisting.Value) ...
+                    && isscalar(self.gui.dirlisting.Value)
+                if strcmp(e.Key, 'enter')
+                    % Pressed Enter
+                    item = self.gui.dirlisting.String{self.gui.dirlisting.Value};
+                    if strcmp(item, '..')
+                        self.browseUp();
+                    elseif isdir(fullfile(self.currentDir, item))
+                        self.browseTo(fullfile(self.currentDir, item));
+                    else
+                        % Ignore Enter key press on regular file.
+                    end
+                elseif strcmp(e.Key, 'backspace')
+                    self.browseUp();
+                end
+            end
         end
 
         function onFileExit(self, ~, ~)
