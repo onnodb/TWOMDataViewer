@@ -3,11 +3,20 @@ classdef TWOMDataViewer < handle
 
     properties
 
+        % Extension of files to show.
+        fileFilter = 'tdms';
+
+    end
+
+    % ------------------------------------------------------------------------
+
+    properties (SetAccess=protected)
+
         % Currently shown directory.
         currentDir;
 
-        % Extension of files to show.
-        fileFilter = 'tdms';
+        % Currently loaded file;
+        currentFile;
 
     end
 
@@ -17,6 +26,9 @@ classdef TWOMDataViewer < handle
 
         % Internal variable containing object handles.
         gui;
+
+        % TWOMDataFile object for current file.
+        tdf;
 
     end
 
@@ -53,7 +65,17 @@ classdef TWOMDataViewer < handle
         end
 
         function loadFile(self, file)
-            % TODO
+            if exist(file, 'file') == 2
+                try
+                    self.tdf = TWOMDataFile(file);
+                catch err
+                    errordlg(err);
+                end
+
+                self.currentFile = file;
+                self.gui.window.Name = sprintf('TWOM Data Viewer - [%s]', file);
+                self.gui.metadata.table.Data = self.tdf.MetaData;
+            end
         end
 
     end
@@ -160,6 +182,7 @@ classdef TWOMDataViewer < handle
                 , 'Style',          'edit' ...
                 , 'Min',            0 ...
                 , 'Max',            2 ... % multi-line
+                , 'HorizontalAlignment', 'left' ...
                 , 'Enable',         'inactive' ...
                 );
 
@@ -167,7 +190,6 @@ classdef TWOMDataViewer < handle
 
             self.gui.root.Sizes         = [screenSize(3)/6 -1 screenSize(3)/6];
             self.gui.root.MinimumWidths = [200 200 200];
-
         end
 
         function refreshDirectory(self)
@@ -277,8 +299,12 @@ classdef TWOMDataViewer < handle
         end
 
         function onMetadataCellSelection(self, ~, e)
-            % TODO
-            % e.Indices
+            if isequal(size(e.Indices), [1 2])
+                self.gui.metadata.details.String = ...
+                    self.gui.metadata.table.Data{e.Indices(1), e.Indices(2)};
+            else
+                self.gui.metadata.details.String = '';
+            end
         end
 
     end
