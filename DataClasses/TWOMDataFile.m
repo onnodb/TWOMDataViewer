@@ -15,6 +15,10 @@ classdef TWOMDataFile < handle
         FileFormatVersion;
         ID;
 
+        % Nx2 cell array, with metadata keys in the first column, and metadata
+        % values in the second column.
+        MetaData;
+
     end
 
     % ------------------------------------------------------------------------
@@ -51,6 +55,46 @@ classdef TWOMDataFile < handle
                 error('This file format version (%d) is not supported.', self.FileFormatVersion);
             end
         end
+
+        function [valid] = isValidTWOMDataFile(self)
+            valid = ~isempty(self.FileFormatVersion) ...
+                    && isfield(self.tdmsStruct, 'FD_Data');
+        end
+
+    end
+
+    % ------------------------------------------------------------------------
+
+    methods     % property getters
+
+        function [val] = get.DateTime(self)
+            s = self.getTdmsProperty('Date/time');
+            val = datetime(s, 'InputFormat', 'yyyyMMdd-HHmmss');
+        end
+
+        function [val] = get.FileFormatVersion(self)
+            val = uint8(sscanf(self.getTdmsProperty('File Format Version'), '%u'));
+        end
+
+        function [val] = get.ID(self)
+            val = self.getTdmsProperty('ID');
+        end
+
+        function [val] = get.MetaData(self)
+            [rootPropNames, rootPropVals] = self.listTdmsProperties('');
+            [fdPropNames,   fdPropVals  ] = self.listTdmsProperties('FD Data');
+
+            metaKeys = [rootPropNames fdPropNames];
+            metaVals = [rootPropVals  fdPropVals];
+
+            val = [metaKeys' metaVals'];
+        end
+
+    end
+
+    % ------------------------------------------------------------------------
+
+    methods     % low-level methods
 
         function [val] = getTdmsProperty(self, path, default, varargin)
             % GETTDMSPROPERTY Get a single TDMS property value
@@ -126,37 +170,76 @@ classdef TWOMDataFile < handle
                     end
                 end
             end
-        end
+        end % function getTdmsProperty
 
-        function [valid] = isValidTWOMDataFile(self)
-            valid = ~isempty(self.FileFormatVersion) ...
-                    && isfield(self.tdmsStruct, 'FD_Data');
-        end
+        function [propNames, propVals] = listTdmsProperties(self, path, varargin)
+            % LISTTDMSPROPERTIES Get all TDMS properties from a given path
+            %
+            % SYNTAX:
+            % val = tdf.getTdmsProperty(path)
+            %
+            % INPUT:
+            % path = which properties to return. For example, '' for the TDMS
+            %       root properties; or 'Group'; or 'Group\Channel'.
+            %
+            % OUTPUT:
+            % propNames = cell array with property names, or {} if none found.
+            % propVals  = cell array with property values, or {} if none found.
+            %
+            % KEY-VALUE PAIR ARGUMENTS:
+            % CaseSensitive = whether or not group, channel and property names
+            %       are case sensitive (default: false)
 
-    end
+            defArgs = struct(...
+                              'CaseSensitive',          false ...
+                            );
+            args = parseArgs(varargin, defArgs, {'CaseSensitive'});
 
-    % ------------------------------------------------------------------------
+            if args.CaseSensitive
+                caseCmpFun = @strcmp;
+            else
+                caseCmpFun = @strcmpi;
+            end
 
-    methods   % property getters
+            pathParts = strsplit(path, '\');
+            switch length(pathParts)
+                case 1
+                    groupName   = pathParts{1};
+                    channelName = '';
+                case 2
+                    groupName   = pathParts{1};
+                    channelName = pathParts{2};
+                otherwise
+                    error('Invalid parameter "path"');
+            end
 
-        function [val] = get.DateTime(self)
-            s = self.getTdmsProperty('Date/time');
-            val = datetime(s, 'InputFormat', 'yyyyMMdd-HHmmss');
-        end
+            for i = 1:length(self.tdmsMeta.rawDataInfo)
+                if caseCmpFun(self.tdmsMeta.groupNames{i}, groupName) ...
+                        && caseCmpFun(self.tdmsMeta.chanNames{i}, channelName)
+                    % Match group/channel: return properties
+                    propNames = self.tdmsMeta.rawDataInfo(i).propNames;
+                    propVals  = self.tdmsMeta.rawDataInfo(i).propValues;
 
-        function [val] = get.FileFormatVersion(self)
-            val = uint8(sscanf(self.getTdmsProperty('File Format Version'), '%u'));
-        end
+                    [propNames, propVals] = n_filterProps(propNames, propVals);
+                    return;
+                end
+            end
 
-        function [val] = get.ID(self)
-            val = self.getTdmsProperty('ID');
-        end
+            propNames = {};
+            propVals  = {};
 
-    end
-
-    % ------------------------------------------------------------------------
-
-    methods (Access=protected)
+            % >> nested functions
+                function [n,v] = n_filterProps(n, v)
+                    % Filter out any internal properties ('NI_*', etc.)
+                    for k = length(n):-1:1
+                        if strncmp(n{k}, 'NI_', 3) || strcmp(n{k}, 'name')
+                            n(k) = [];
+                            v(k) = [];
+                        end
+                    end
+                end
+            % << nested functions
+        end % function listTdmsProperties
 
     end
 
