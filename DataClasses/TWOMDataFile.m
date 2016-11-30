@@ -19,6 +19,8 @@ classdef TWOMDataFile < handle
         % values in the second column.
         MetaData;
 
+        NForceChannels;
+
     end
 
     % ------------------------------------------------------------------------
@@ -56,6 +58,85 @@ classdef TWOMDataFile < handle
             end
         end
 
+        function [fd] = getFdData(self, forceChan, distChan)
+            % GETFDDATA
+            %
+            % INPUT:
+            % forceChan = either:
+            %       - a string 'c1x', which gives force data for "trap 1 - X";
+            %       - a string 't2', which gives the total vector sum for the
+            %         force on trap 2;
+            %       - a channel index, 1-based.
+            % distChan = 1 or 2
+
+            if isnumeric(forceChan)
+                forceChanName = sprintf('Force Channel %d (pN)', forceChan-1);
+            elseif ischar(forceChan) && length(forceChan) == 3 && forceChan(1) == 'c'
+                forceIdx = str2num(forceChan(2));
+                chanIdx = 2*(forceIdx-1);
+                if (forceChan(3) == 'x')
+                    % ok
+                elseif (forceChan(3) == 'y')
+                    chanIdx = chanIdx + 1;
+                else
+                    error('Invalid argument "forceChan".');
+                end
+                if chanIdx >= self.NForceChannels
+                    error('Force channel index out of range.');
+                end
+                forceChanName = sprintf('Force Channel %d (pN)', chanIdx);
+            elseif ischar(forceChan) && length(forceChan) == 2 && forceChan(1) == 't'
+                forceIdx = str2num(forceChan(2));
+                if forceIdx*2 > self.NForceChannels
+                    error('Force trap index out of range.');
+                end
+                forceChanName = sprintf('Force Trap %d (pN)', forceIdx);
+            else
+                error('Invalid argument "forceChan".');
+            end
+
+            if ischar(distChan)
+                distChan = str2num(distChan);
+            end
+            if isnumeric(distChan) && isscalar(distChan)
+                if distChan < 1 || distChan > 2
+                    error('Distance channel out of range.');
+                end
+                distChanName = sprintf('Distance %d (um)', distChan);
+            else
+                error('Invalid argument "distChan".');
+            end
+
+            objGet = struct();
+            objGet.fullPathsKeep = {['/''FD Data''/''' forceChanName ''''], ...
+                                    ['/''FD Data''/''' distChanName  ''''], ...
+                                     '/''FD Data''/''Time (ms)'''};
+            data = TDMS_readTDMSFile(self.Filename, ...
+                          'META_STRUCT',        self.tdmsMeta ...
+                        , 'GET_DATA_OPTION',    'getSubset' ...
+                        , 'OBJECTS_GET',        objGet ...
+                        );
+
+            d = []; f = []; t = [];
+            for i = 1:length(data.data)
+                if strcmpi(self.tdmsMeta.groupNames{i}, 'FD Data') ...
+                        && strcmpi(self.tdmsMeta.chanNames{i}, forceChanName)
+                    f = data.data{i};
+                elseif strcmpi(self.tdmsMeta.groupNames{i}, 'FD Data') ...
+                        && strcmpi(self.tdmsMeta.chanNames{i}, distChanName)
+                    d = data.data{i};
+                elseif strcmpi(self.tdmsMeta.groupNames{i}, 'FD Data') ...
+                        && strcmpi(self.tdmsMeta.chanNames{i}, 'Time (ms)')
+                    t = data.data{i};
+                end
+            end
+            if isempty(d)
+                error('Error retrieving data: data not found.');
+            end
+
+            fd = FdData(self.getTdmsProperty('name'), f, d, t);
+        end
+
         function [valid] = isValidTWOMDataFile(self)
             valid = ~isempty(self.FileFormatVersion) ...
                     && isfield(self.tdmsStruct, 'FD_Data');
@@ -88,6 +169,10 @@ classdef TWOMDataFile < handle
             metaVals = [rootPropVals  fdPropVals];
 
             val = [metaKeys' metaVals'];
+        end
+
+        function [val] = get.NForceChannels(self)
+            val = self.getTdmsProperty('FD Data\Number of Force Channels');
         end
 
     end
