@@ -65,17 +65,52 @@ classdef TWOMDataViewer < handle
         end
 
         function loadFile(self, file)
-            if exist(file, 'file') == 2
-                try
-                    self.tdf = TWOMDataFile(file);
-                catch err
-                    errordlg(err);
-                end
-
-                self.currentFile = file;
-                self.gui.window.Name = sprintf('TWOM Data Viewer - [%s]', file);
-                self.gui.metadata.table.Data = self.tdf.MetaData;
+            if exist(file, 'file') ~= 2
+                return
             end
+
+            try
+                self.tdf = TWOMDataFile(file);
+            catch err
+                errordlg(err.message);
+                return
+            end
+
+            self.currentFile = file;
+            self.gui.window.Name = sprintf('TWOM Data Viewer - [%s]', file);
+
+            % Load metadata
+            self.gui.metadata.table.Data = self.tdf.MetaData;
+
+            % Load force channels
+            [forceChanCaptions, forceChanRefs] = n_getForceChanListData();
+            if size(self.gui.forcechan.Data,1) == length(forceChanCaptions)
+                forceChanSelections = self.gui.forcechan.Data(:,1);  % keep selection
+            else
+                forceChanSelections = num2cell(false(length(forceChanCaptions),1));
+            end
+            self.gui.forcechan.Data = [forceChanSelections forceChanCaptions'];
+            self.gui.forcechan.UserData = forceChanRefs';
+
+            % >> nested functions
+            function [captions, forceChans] = n_getForceChanListData()
+                nTrapChan  = floor(self.tdf.NForceChannels/2);
+
+                captions   = {};
+                forceChans = {};
+
+                for k = 1:nTrapChan
+                    captions{end+1} = sprintf('Force Trap %d - X', k);
+                    captions{end+1} = sprintf('Force Trap %d - Y', k);
+                    forceChans{end+1} = sprintf('c%dx', k);
+                    forceChans{end+1} = sprintf('c%dy', k);
+                end
+                for k = 1:nTrapChan
+                    captions{end+1} = sprintf('Force Trap %d - Sum', k);
+                    forceChans{end+1} = sprintf('t%d', k);
+                end
+            end
+            % << nested functions
         end
 
     end
@@ -163,8 +198,7 @@ classdef TWOMDataViewer < handle
                 , 'ColumnWidth',    {25 175} ...
                 , 'ColumnFormat',   {'logical' 'char'} ...
                 , 'ColumnEditable', [true false] ...
-                , 'Data',           {false 'Force channel 1'; ...
-                                     false 'Force channel 2'} ...
+                , 'Data',           {} ...
                 , 'CellEditCallback',@(h,e) self.onForceChanCellEdit(h,e) ...
                 );
 
