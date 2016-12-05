@@ -75,14 +75,17 @@ classdef TWOMDataViewer < handle
             % Layout plots
             xlabel(self.gui.plotfd.axes, 'Distance (um)');
             ylabel(self.gui.plotfd.axes, 'Force (pN)');
+            axis(self.gui.plotfd.axes, 'tight');
 
             self.gui.plotft.axes.XTickLabel = {};
             self.gui.plotft.axes.XGrid = 'on';
             ylabel(self.gui.plotft.axes, 'Force (pN)');
+            axis(self.gui.plotft.axes, 'tight');
 
             self.gui.plotdt.axes.XGrid = 'on';
             xlabel(self.gui.plotdt.axes, 'Time (s)');
             ylabel(self.gui.plotdt.axes, 'Distance (um)');
+            axis(self.gui.plotdt.axes, 'tight');
         end
 
         function loadFile(self, file)
