@@ -12,11 +12,14 @@ classdef TWOMDataViewer < handle
 
     properties (SetAccess=protected)
 
-        % Currently shown directory.
+        % Currently shown directory [char]
         currentDir;
 
-        % Currently loaded file;
+        % Currently loaded file [TWOMDataFile]
         currentFile;
+
+        % Currently shown data [FdDataCollection]
+        data;
 
     end
 
@@ -37,7 +40,6 @@ classdef TWOMDataViewer < handle
     methods
 
         function [self] = TWOMDataViewer(startDir)
-            % Set up GUI.
             self.createGui();
             if nargin > 0
                 self.browseTo(startDir);
@@ -47,6 +49,7 @@ classdef TWOMDataViewer < handle
         end
 
         function browseTo(self, newDir)
+            self.clearPlots();
             if exist(newDir, 'dir') == 7
                 self.currentDir = newDir;
                 self.gui.dirpanel.edit.String = newDir;
@@ -64,14 +67,34 @@ classdef TWOMDataViewer < handle
             end
         end
 
+        function clearPlots(self)
+            cla(self.gui.plotfd.axes);
+            cla(self.gui.plotft.axes);
+            cla(self.gui.plotdt.axes);
+
+            % Layout plots
+            xlabel(self.gui.plotfd.axes, 'Distance (um)');
+            ylabel(self.gui.plotfd.axes, 'Force (pN)');
+
+            self.gui.plotft.axes.XTickLabel = {};
+            self.gui.plotft.axes.XGrid = 'on';
+            ylabel(self.gui.plotft.axes, 'Force (pN)');
+
+            self.gui.plotdt.axes.XGrid = 'on';
+            xlabel(self.gui.plotdt.axes, 'Time (s)');
+            ylabel(self.gui.plotdt.axes, 'Distance (um)');
+        end
+
         function loadFile(self, file)
             if exist(file, 'file') ~= 2
+                self.clearPlots();
                 return
             end
 
             try
                 self.tdf = TWOMDataFile(file);
             catch err
+                self.clearPlots();
                 errordlg(err.message);
                 return
             end
@@ -92,6 +115,9 @@ classdef TWOMDataViewer < handle
             self.gui.forcechan.Data = [forceChanSelections forceChanCaptions'];
             self.gui.forcechan.UserData = forceChanRefs';
 
+            % Load plots
+            self.updateData();
+
             % >> nested functions
             function [captions, forceChans] = n_getForceChanListData()
                 nTrapChan  = floor(self.tdf.NForceChannels/2);
@@ -111,6 +137,48 @@ classdef TWOMDataViewer < handle
                 end
             end
             % << nested functions
+        end
+
+        function updateData(self)
+            dataItems = n_getSelectedData();
+            if isempty(dataItems)
+                self.clearPlots();
+            else
+                self.data = FdDataCollection();
+                for i = 1:length(dataItems)
+                    self.data.add(self.tdf.getFdData(dataItems{i}{:}));
+                end
+                self.updatePlots();
+            end
+
+            % >> nested functions
+            function [p] = n_getSelectedData()
+                distChan = self.gui.distchan.Value;
+                p = {};
+                for k = 1:size(self.gui.forcechan.Data,1)
+                    if self.gui.forcechan.Data{k,1}
+                        p{end+1} = {self.gui.forcechan.UserData{k}, distChan};
+                    end
+                end
+            end
+            % << nested functions
+        end
+
+        function updatePlots(self)
+            if isempty(self.data)
+                return
+            end
+
+            self.clearPlots();
+
+            for i = 1:self.data.length
+                plot(self.gui.plotfd.axes, self.data.items{i}.d, self.data.items{i}.f, '.');
+                hold(self.gui.plotfd.axes, 'on');
+                plot(self.gui.plotft.axes, self.data.items{i}.t, self.data.items{i}.f, '.');
+                hold(self.gui.plotft.axes, 'on');
+                plot(self.gui.plotdt.axes, self.data.items{i}.t, self.data.items{i}.d, '.');
+                hold(self.gui.plotdt.axes, 'on');
+            end
         end
 
     end
@@ -148,7 +216,7 @@ classdef TWOMDataViewer < handle
 
             % ----- Main columns
             self.gui.root = uiextras.HBoxFlex('Parent', self.gui.window);
-            self.gui.root.Spacing = 5;
+            self.gui.root.Spacing = 3;
 
             % ----- Left panel
             self.gui.left.panel = uiextras.VBox('Parent', self.gui.root);
@@ -180,7 +248,23 @@ classdef TWOMDataViewer < handle
             self.gui.left.panel.Sizes = [20 -1];
 
             % ----- Center, main panel
-            self.gui.main.panel = uiextras.VBox('Parent', self.gui.root);
+            self.gui.main.panel = uiextras.VBoxFlex('Parent', self.gui.root);
+
+            for axesName = {'plotfd', 'plotft', 'plotdt'}
+                self.gui.(axesName{1}).panel = uiextras.Panel('Parent', self.gui.main.panel);
+                self.gui.(axesName{1}).axes = axes(...
+                      'Parent',         self.gui.(axesName{1}).panel ...
+                    , 'ActivePositionProperty', 'OuterPosition' ...
+                    , 'FontSize',       12 ...
+                    );
+                % TODO Try to decrease amount of empty space in plots.
+            end
+
+            linkaxes([self.gui.plotft.axes, self.gui.plotdt.axes], 'x');
+            self.clearPlots();
+
+            self.gui.main.panel.Sizes = [-2 -1 -1];
+            self.gui.main.panel.Spacing = 3;
 
             % ----- Right panel
             self.gui.right.panel = uiextras.VBox('Parent', self.gui.root);
@@ -321,7 +405,7 @@ classdef TWOMDataViewer < handle
         end
 
         function onDistChanCallback(self, ~, ~)
-            % TODO
+            self.updateData();
         end
 
         function onFileExit(self, ~, ~)
@@ -329,7 +413,7 @@ classdef TWOMDataViewer < handle
         end
 
         function onForceChanCellEdit(self, ~, ~)
-            % TODO
+            self.updateData();
         end
 
         function onMetadataCellSelection(self, ~, e)
