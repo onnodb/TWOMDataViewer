@@ -115,6 +115,9 @@ classdef TWOMDataViewer < handle
             else
                 forceChanSelections = num2cell(false(length(forceChanCaptions),1));
             end
+            if all(~cell2mat(forceChanSelections))
+                forceChanSelections{1} = true;
+            end
             self.gui.forcechan.Data = [forceChanSelections forceChanCaptions'];
             self.gui.forcechan.UserData = forceChanRefs';
 
