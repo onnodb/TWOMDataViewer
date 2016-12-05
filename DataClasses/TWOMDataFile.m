@@ -90,7 +90,7 @@ classdef TWOMDataFile < handle
                 if forceIdx*2 > self.NForceChannels
                     error('Force trap index out of range.');
                 end
-                forceChanName = sprintf('Force Trap %d (pN)', forceIdx);
+                forceChanName = sprintf('Force Trap %d (pN)', forceIdx-1);
             else
                 error('Invalid argument "forceChan".');
             end
