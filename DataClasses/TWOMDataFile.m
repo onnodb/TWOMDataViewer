@@ -67,32 +67,22 @@ classdef TWOMDataFile < handle
             %       - a string 't2', which gives the total vector sum for the
             %         force on trap 2;
             %       - a channel index, 1-based.
+            %       - A cell array of the above.
             % distChan = 1 or 2
+            %
+            % OUTPUT:
+            % fd = an FdData object, or, if forceChan was a cell array, an
+            %       FdDataCollection.
 
-            if isnumeric(forceChan)
-                forceChanName = sprintf('Force Channel %d (pN)', forceChan-1);
-            elseif ischar(forceChan) && length(forceChan) == 3 && forceChan(1) == 'c'
-                forceIdx = str2num(forceChan(2));
-                chanIdx = 2*(forceIdx-1);
-                if (forceChan(3) == 'x')
-                    % ok
-                elseif (forceChan(3) == 'y')
-                    chanIdx = chanIdx + 1;
-                else
-                    error('Invalid argument "forceChan".');
+            if ischar(forceChan) || isnumeric(forceChan)
+                forceChanNames = {n_parseForceChan(forceChan)};
+            elseif iscell(forceChan)
+                forceChanNames = cell(length(forceChan),1);
+                for i = 1:length(forceChan)
+                    forceChanNames{i} = n_parseForceChan(forceChan{i});
                 end
-                if chanIdx >= self.NForceChannels
-                    error('Force channel index out of range.');
-                end
-                forceChanName = sprintf('Force Channel %d (pN)', chanIdx);
-            elseif ischar(forceChan) && length(forceChan) == 2 && forceChan(1) == 't'
-                forceIdx = str2num(forceChan(2));
-                if forceIdx*2 > self.NForceChannels
-                    error('Force trap index out of range.');
-                end
-                forceChanName = sprintf('Force Trap %d (pN)', forceIdx-1);
             else
-                error('Invalid argument "forceChan".');
+                error('Invalid argument "forceChan"');
             end
 
             if ischar(distChan)
@@ -108,33 +98,76 @@ classdef TWOMDataFile < handle
             end
 
             objGet = struct();
-            objGet.fullPathsKeep = {['/''FD Data''/''' forceChanName ''''], ...
-                                    ['/''FD Data''/''' distChanName  ''''], ...
+            objGet.fullPathsKeep = {['/''FD Data''/''' distChanName  ''''], ...
                                      '/''FD Data''/''Time (ms)'''};
+            for i = 1:length(forceChanNames)
+                objGet.fullPathsKeep{end+1} = ['/''FD Data''/''' forceChanNames{i} ''''];
+            end
             data = TDMS_readTDMSFile(self.Filename, ...
                           'META_STRUCT',        self.tdmsMeta ...
                         , 'GET_DATA_OPTION',    'getSubset' ...
                         , 'OBJECTS_GET',        objGet ...
                         );
 
-            d = []; f = []; t = [];
-            for i = 1:length(data.data)
-                if strcmpi(self.tdmsMeta.groupNames{i}, 'FD Data') ...
-                        && strcmpi(self.tdmsMeta.chanNames{i}, forceChanName)
-                    f = data.data{i};
-                elseif strcmpi(self.tdmsMeta.groupNames{i}, 'FD Data') ...
-                        && strcmpi(self.tdmsMeta.chanNames{i}, distChanName)
-                    d = data.data{i};
-                elseif strcmpi(self.tdmsMeta.groupNames{i}, 'FD Data') ...
-                        && strcmpi(self.tdmsMeta.chanNames{i}, 'Time (ms)')
-                    t = data.data{i};
+            fdc = FdDataCollection();
+            for j = 1:length(forceChanNames)
+                d = []; f = []; t = [];
+                for i = 1:length(data.data)
+                    if strcmpi(self.tdmsMeta.groupNames{i}, 'FD Data') ...
+                            && strcmpi(self.tdmsMeta.chanNames{i}, forceChanNames{j})
+                        f = data.data{i};
+                    elseif strcmpi(self.tdmsMeta.groupNames{i}, 'FD Data') ...
+                            && strcmpi(self.tdmsMeta.chanNames{i}, distChanName)
+                        d = data.data{i};
+                    elseif strcmpi(self.tdmsMeta.groupNames{i}, 'FD Data') ...
+                            && strcmpi(self.tdmsMeta.chanNames{i}, 'Time (ms)')
+                        t = data.data{i};
+                    end
                 end
+                if isempty(d)
+                    error('Error retrieving data: data not found.');
+                end
+                % TODO Add metadata to FdData objects
+                fdc.add(FdData(sprintf('%s - %s, %s', ...
+                                       self.getTdmsProperty('name'), ...
+                                       forceChanNames{j}, distChanName), ...
+                               f, d, t));
             end
-            if isempty(d)
-                error('Error retrieving data: data not found.');
+            if ~iscell(forceChan) && (fdc.length == 1)
+                fd = fdc.items{1};
+            else
+                fd = fdc;
             end
 
-            fd = FdData(self.getTdmsProperty('name'), f, d, t);
+            % >> nested functions
+            function [fcName] = n_parseForceChan(fc)
+                if isnumeric(fc)
+                    fcName = sprintf('Force Channel %d (pN)', fc-1);
+                elseif ischar(fc) && length(fc) == 3 && fc(1) == 'c'
+                    forceIdx = str2num(fc(2));
+                    chanIdx = 2*(forceIdx-1);
+                    if (fc(3) == 'x')
+                        % ok
+                    elseif (fc(3) == 'y')
+                        chanIdx = chanIdx + 1;
+                    else
+                        error('Invalid argument "forceChan".');
+                    end
+                    if chanIdx >= self.NForceChannels
+                        error('Force channel index out of range.');
+                    end
+                    fcName = sprintf('Force Channel %d (pN)', chanIdx);
+                elseif ischar(fc) && length(fc) == 2 && fc(1) == 't'
+                    forceIdx = str2num(fc(2));
+                    if forceIdx*2 > self.NForceChannels
+                        error('Force trap index out of range.');
+                    end
+                    fcName = sprintf('Force Trap %d (pN)', forceIdx-1);
+                else
+                    error('Invalid argument "forceChan".');
+                end
+            end
+            % << nested functions
         end
 
         function [valid] = isValidTWOMDataFile(self)

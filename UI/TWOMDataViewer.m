@@ -146,24 +146,21 @@ classdef TWOMDataViewer < handle
         end
 
         function updateData(self)
-            dataItems = n_getSelectedData();
-            if isempty(dataItems)
+            [forceChans, distChan] = n_getSelectedData();
+            if isempty(forceChans)
                 self.clearPlots();
             else
-                self.data = FdDataCollection();
-                for i = 1:length(dataItems)
-                    self.data.add(self.tdf.getFdData(dataItems{i}{:}));
-                end
+                self.data = self.tdf.getFdData(forceChans, distChan);
                 self.updatePlots();
             end
 
             % >> nested functions
-            function [p] = n_getSelectedData()
-                distChan = self.gui.distchan.Value;
-                p = {};
+            function [fc, dc] = n_getSelectedData()
+                dc = self.gui.distchan.Value;
+                fc = {};
                 for k = 1:size(self.gui.forcechan.Data,1)
                     if self.gui.forcechan.Data{k,1}
-                        p{end+1} = {self.gui.forcechan.UserData{k}, distChan};
+                        fc{end+1} = self.gui.forcechan.UserData{k};
                     end
                 end
             end
