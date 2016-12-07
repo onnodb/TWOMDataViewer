@@ -88,6 +88,10 @@ classdef TWOMDataViewer < handle
                 axis(ax, 'tight');
                 set(ax, 'FontSize', 12);
             end
+
+            % Add cursors to F,t / d,t plots
+            self.gui.plotft.cur = cursors(self.gui.plotft.axes, [1 0 0]);
+            self.gui.plotdt.cur = cursors(self.gui.plotdt.axes, [1 0 0]);
         end
 
         function loadFile(self, file)
@@ -169,21 +173,47 @@ classdef TWOMDataViewer < handle
             % << nested functions
         end
 
+        function updateFdPlot(self)
+            minT = min(self.gui.plotft.cur.Positions);
+            maxT = max(self.gui.plotft.cur.Positions);
+            for i = 1:self.data.length
+                fd_subset = self.data.items{i}.subset('t', [minT maxT]);
+                set(self.gui.plotfd.plots(i), ...
+                    'XData', fd_subset.d, 'YData', fd_subset.f);
+            end
+        end
+
         function updatePlots(self)
             if isempty(self.data)
                 return
             end
 
+            % TODO Optimize this: maybe only delete plots / update plot data,
+            % instead of clearing axes every time, and thus every time
+            % recreating things like cursors?
             self.clearPlots();
 
+            % Plot data
+            self.gui.plotfd.plots = [];
             for i = 1:self.data.length
-                plot(self.gui.plotfd.axes, self.data.items{i}.d, self.data.items{i}.f, '.');
-                hold(self.gui.plotfd.axes, 'on');
+                self.gui.plotfd.plots(end+1) = ...
+                    plot(self.gui.plotfd.axes, [NaN], [NaN], '.');
+                hold(self.gui.plotft.axes, 'on');
                 plot(self.gui.plotft.axes, self.data.items{i}.t, self.data.items{i}.f, '.');
                 hold(self.gui.plotft.axes, 'on');
                 plot(self.gui.plotdt.axes, self.data.items{i}.t, self.data.items{i}.d, '.');
                 hold(self.gui.plotdt.axes, 'on');
             end
+
+            % Update cursors
+            for cur = {self.gui.plotft.cur, self.gui.plotdt.cur}
+                cur{1}.add(min(self.data.items{i}.t));
+                cur{1}.add(max(self.data.items{i}.t));
+                addlistener(cur{1}, 'onDrag',     @(h,e) self.onCursorDrag(h,e));
+                addlistener(cur{1}, 'onReleased', @(h,e) self.onCursorRelease(h,e));
+            end
+
+            self.updateFdPlot();
         end
 
     end
@@ -255,6 +285,7 @@ classdef TWOMDataViewer < handle
             % ----- Center, main panel
             self.gui.main.panel = uiextras.VBoxFlex('Parent', self.gui.root);
 
+            % Create plot axes
             self.gui.allaxes = [];
             for axesName = {'plotfd', 'plotft', 'plotdt'}
                 self.gui.(axesName{1}).panel = uiextras.Panel('Parent', self.gui.main.panel);
@@ -358,6 +389,19 @@ classdef TWOMDataViewer < handle
             if newDir ~= 0
                 self.browseTo(newDir);
             end
+        end
+
+        function onCursorDrag(self, h, e)
+            % Sync cursors in other graph with this one.
+            if h == self.gui.plotft.cur
+                self.gui.plotdt.cur.Positions = e.Positions;
+            else
+                self.gui.plotft.cur.Positions = e.Positions;
+            end
+        end
+
+        function onCursorRelease(self, h, e)
+            self.updateFdPlot();
         end
 
         function onDirChange(self, ~, ~)
