@@ -68,24 +68,26 @@ classdef TWOMDataViewer < handle
         end
 
         function clearPlots(self)
-            cla(self.gui.plotfd.axes);
-            cla(self.gui.plotft.axes);
-            cla(self.gui.plotdt.axes);
+            for ax = self.gui.allaxes
+                cla(ax);
+            end
 
             % Layout plots
             xlabel(self.gui.plotfd.axes, 'Distance (um)');
             ylabel(self.gui.plotfd.axes, 'Force (pN)');
-            axis(self.gui.plotfd.axes, 'tight');
 
             self.gui.plotft.axes.XTickLabel = {};
             self.gui.plotft.axes.XGrid = 'on';
             ylabel(self.gui.plotft.axes, 'Force (pN)');
-            axis(self.gui.plotft.axes, 'tight');
 
             self.gui.plotdt.axes.XGrid = 'on';
             xlabel(self.gui.plotdt.axes, 'Time (s)');
             ylabel(self.gui.plotdt.axes, 'Distance (um)');
-            axis(self.gui.plotdt.axes, 'tight');
+
+            for ax = self.gui.allaxes
+                axis(ax, 'tight');
+                set(ax, 'FontSize', 12);
+            end
         end
 
         function loadFile(self, file)
@@ -253,18 +255,18 @@ classdef TWOMDataViewer < handle
             % ----- Center, main panel
             self.gui.main.panel = uiextras.VBoxFlex('Parent', self.gui.root);
 
+            self.gui.allaxes = [];
             for axesName = {'plotfd', 'plotft', 'plotdt'}
                 self.gui.(axesName{1}).panel = uiextras.Panel('Parent', self.gui.main.panel);
                 self.gui.(axesName{1}).axes = axes(...
                       'Parent',         self.gui.(axesName{1}).panel ...
                     , 'ActivePositionProperty', 'OuterPosition' ...
-                    , 'FontSize',       12 ...
                     );
+                self.gui.allaxes(end+1) = self.gui.(axesName{1}).axes;
                 % TODO Try to decrease amount of empty space in plots.
             end
 
             linkaxes([self.gui.plotft.axes, self.gui.plotdt.axes], 'x');
-            self.clearPlots();
 
             self.gui.main.panel.Sizes = [-2 -1 -1];
             self.gui.main.panel.Spacing = 3;
