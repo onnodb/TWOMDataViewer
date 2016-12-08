@@ -85,6 +85,7 @@ classdef TWOMDataViewer < handle
             ylabel(self.gui.plotdt.axes, 'Distance (um)');
 
             for ax = self.gui.allaxes
+                hold(ax, 'on');
                 axis(ax, 'tight');
                 set(ax, 'FontSize', 12);
             end
@@ -197,12 +198,9 @@ classdef TWOMDataViewer < handle
             self.gui.plotfd.plots = [];
             for i = 1:self.data.length
                 self.gui.plotfd.plots(end+1) = ...
-                    plot(self.gui.plotfd.axes, [NaN], [NaN], '.');
-                hold(self.gui.plotft.axes, 'on');
+                    plot(self.gui.plotfd.axes, [NaN NaN], [NaN NaN], '.');
                 plot(self.gui.plotft.axes, self.data.items{i}.t, self.data.items{i}.f, '.');
-                hold(self.gui.plotft.axes, 'on');
                 plot(self.gui.plotdt.axes, self.data.items{i}.t, self.data.items{i}.d, '.');
-                hold(self.gui.plotdt.axes, 'on');
             end
 
             % Update cursors
