@@ -93,6 +93,10 @@ classdef TWOMDataViewer < handle
             % Add cursors to F,t / d,t plots
             self.gui.plotft.cur = cursors(self.gui.plotft.axes, [1 0 0]);
             self.gui.plotdt.cur = cursors(self.gui.plotdt.axes, [1 0 0]);
+
+            % Add context menu to F,t / d,t plots
+            self.gui.plotft.axes.UIContextMenu = self.gui.main.xtmenu.handle;
+            self.gui.plotdt.axes.UIContextMenu = self.gui.main.xtmenu.handle;
         end
 
         function loadFile(self, file)
@@ -237,15 +241,25 @@ classdef TWOMDataViewer < handle
             % ----- Menu
             % + File
             self.gui.menu.file = uimenu(self.gui.window, 'Label', 'File');
-            self.gui.menu.file_browse = uimenu(self.gui.menu.file, ...
-                  'Label',          'Browse...' ...
+            self.gui.menu.file_browse = uimenu(self.gui.menu.file ...
+                , 'Label',          'Browse...' ...
                 , 'Callback',       @(h,e) self.onBrowseBtnClick(h,e) ...
                 );
-            self.gui.menu.file_exit = uimenu(self.gui.menu.file, ...
-                  'Separator',      'on' ...
+            self.gui.menu.file_exit = uimenu(self.gui.menu.file ...
+                , 'Separator',      'on' ...
                 , 'Label',          'Exit' ...
                 , 'Callback',       @(h,e) self.onFileExit(h,e) ...
               );
+            % + View
+            self.gui.menu.view = uimenu(self.gui.window, 'Label', 'View');
+            self.gui.menu.view_zoomCursors = uimenu(self.gui.menu.view ...
+                    , 'Label',      'Zoom to Cursors' ...
+                    , 'Callback',   @(h,e) self.onZoomCursors ...
+                    );
+            self.gui.menu.view_zoomOut = uimenu(self.gui.menu.view ...
+                    , 'Label',      'Zoom Out' ...
+                    , 'Callback',   @(h,e) self.onZoomOut ...
+                    );
 
             % ----- Main columns
             self.gui.root = uiextras.HBoxFlex('Parent', self.gui.window);
@@ -296,6 +310,13 @@ classdef TWOMDataViewer < handle
             end
 
             linkaxes([self.gui.plotft.axes, self.gui.plotdt.axes], 'x');
+
+            % Set up context menus
+            self.gui.main.xtmenu.handle = uicontextmenu(self.gui.window);
+            self.gui.main.xtmenu.zoom = uimenu(self.gui.main.xtmenu.handle ...
+                    , 'Label',      'Zoom to Cursors' ...
+                    , 'Callback',   @(h,e) self.onZoomCursors ...
+                    );
 
             self.gui.main.panel.Sizes = [-2 -1 -1];
             self.gui.main.panel.Spacing = 3;
@@ -470,6 +491,20 @@ classdef TWOMDataViewer < handle
             else
                 self.gui.metadata.details.String = '';
             end
+        end
+
+        function onZoomCursors(self)
+            minT = min(self.gui.plotft.cur.Positions);
+            maxT = max(self.gui.plotft.cur.Positions);
+
+            for ax = [self.gui.plotft.axes, self.gui.plotdt.axes]
+                set(ax, 'XLim', [minT maxT]);
+            end
+        end
+
+        function onZoomOut(self)
+            axis(self.gui.plotft.axes, 'tight');
+            axis(self.gui.plotdt.axes, 'tight');
         end
 
     end
