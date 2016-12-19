@@ -296,6 +296,14 @@ classdef TWOMDataViewer < handle
                 , 'CellEditCallback',@(h,e) self.onForceChanCellEdit(h,e) ...
                 );
 
+            self.gui.marks = uicontrol(...
+                  'Parent',         self.gui.maingrid.rightpanel ...
+                , 'Style',          'listbox' ...
+                , 'Min',            0 ...
+                , 'Max',            2 ...       % multi-select
+                , 'Callback',       @(h,e) self.onMarksCallback(h,e) ...
+                );
+
             self.gui.metadata.table = uitable(...
                   'Parent',         self.gui.maingrid.rightpanel ...
                 , 'RowName',        [] ...
@@ -314,7 +322,7 @@ classdef TWOMDataViewer < handle
                 , 'Enable',         'inactive' ...
                 );
 
-            self.gui.maingrid.rightpanel.Sizes = [20 -1 -2 80];
+            self.gui.maingrid.rightpanel.Sizes = [20 -1 -1 -2 80];
 
             self.gui.maingrid.root.Sizes         = [screenSize(3)/6 -1 screenSize(3)/6];
             self.gui.maingrid.root.MinimumWidths = [200 200 200];
@@ -360,18 +368,23 @@ classdef TWOMDataViewer < handle
         function fileChanged(self)
             if isempty(self.file)
                 self.gui.window.Name = 'TWOM Data Viewer';
-                self.gui.metadata.table.Data = {};
                 self.gui.forcechan.Data = {};
                 self.gui.forcechan.UserData = {};
+                self.gui.marks.String = {};
+                self.gui.metadata.table.Data = {};
             else
                 self.gui.window.Name = sprintf('TWOM Data Viewer - [%s]', self.file.Filename);
 
-                % Load metadata
-                self.gui.metadata.table.Data = self.file.MetaData;
+                % Load data marks
+                [self.gui.marks.String, self.gui.marks.UserData] = n_getMarksData();
+                self.gui.marks.Value = [];
 
                 % Load force channel selection list
                 self.gui.forcechan.Data = [n_getForceChanSelection() n_getForceChanCaptions()];
                 self.gui.forcechan.UserData = n_getForceChanRefs();
+
+                % Load metadata
+                self.gui.metadata.table.Data = self.file.MetaData;
             end
 
             self.resetView();
@@ -411,6 +424,15 @@ classdef TWOMDataViewer < handle
                 end
                 if all(~cell2mat(sel))
                     sel{1} = true;  % default selection: top item
+                end
+            end
+            function [markStrings, markUserData] = n_getMarksData()
+                marks = self.file.getMarks();
+                markStrings  = cell(length(marks),1);
+                markUserData = cell(length(marks),1);
+                for i = 1:length(marks)
+                    markStrings{i}  = sprintf('[%d] %s', marks(i).number, marks(i).comment);
+                    markUserData{i} = marks(i).t;
                 end
             end
             % << nested functions
@@ -473,9 +495,10 @@ classdef TWOMDataViewer < handle
             end
         end
 
-        function onCursorReleased(self, h, e)
+        function onCursorReleased(self, ~, ~)
             if ~isempty(self.view.data)
-                self.view.fdSubset = [min(e.Positions) max(e.Positions)];
+                self.view.fdSubset = [min(self.gui.plotft.cur.Positions) ...
+                                      max(self.gui.plotft.cur.Positions)];
                 self.applyView();
             end
         end
@@ -548,6 +571,22 @@ classdef TWOMDataViewer < handle
             if ~isempty(self.file)
                 self.uiToView_FDChannelSelection();
                 self.applyView();
+            end
+        end
+
+        function onMarksCallback(self, ~, ~)
+            if ~isempty(self.file) && ~isempty(self.gui.marks.Value)
+                if isscalar(self.gui.marks.Value)
+                    self.gui.plotft.cur.Positions = ...
+                        [self.gui.marks.UserData{self.gui.marks.Value} ...
+                         max(self.gui.plotft.cur.Positions)];
+                else
+                    self.gui.plotft.cur.Positions = ...
+                        [self.gui.marks.UserData{self.gui.marks.Value(1)} ...
+                         self.gui.marks.UserData{self.gui.marks.Value(2)} ];
+                end
+                self.gui.plotdt.cur.Positions = self.gui.plotft.cur.Positions;
+                self.onCursorReleased();
             end
         end
 

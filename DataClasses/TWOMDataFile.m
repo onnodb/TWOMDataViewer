@@ -46,7 +46,10 @@ classdef TWOMDataFile < handle
             parseClassArgs(varargin, self);
 
             % Load TDMS file structure (no data, only metadata/properties).
-            [output, self.tdmsMeta] = TDMS_readTDMSFile(filename, 'GET_DATA_OPTION', 'getnone');
+            [output, self.tdmsMeta] = TDMS_readTDMSFile(filename, ...
+                          'GET_DATA_OPTION',    'getSubset' ...
+                        , 'OBJECTS_GET',        struct('groupsKeep', {{'Marks'}}) ...
+                        );
             self.tdmsStruct = TDMS_dataToGroupChanStruct_v4(output);
 
             % Is this a valid TWOM data file?
@@ -168,6 +171,30 @@ classdef TWOMDataFile < handle
                 end
             end
             % << nested functions
+        end
+
+        function [marks] = getMarks(self)
+            % GETMARKS Returns a list of data marks in the file
+            %
+            % OUTPUT:
+            % marks = struct array with the following fields:
+            %   .number = number of the data mark
+            %   .comment = textual comment on the data mark as entered by
+            %           the user during the measurement
+            %   .t = timestamp (in ms)
+
+            marks = struct('number', {}, 'comment', {}, 't', {});
+
+            markNumbers = self.tdmsStruct.Marks.Mark__.data;
+            markTimes   = self.tdmsStruct.Marks.Time__ms_.data;
+
+            if ~isempty(markNumbers)
+                for i = 1:length(markNumbers)
+                    marks(end+1).number  = markNumbers(i);
+                    marks(end)  .comment = self.tdmsStruct.Marks.Props.(sprintf('Mark_%d_comment', markNumbers(i)));
+                    marks(end)  .t       = markTimes(i);
+                end
+            end
         end
 
         function [valid] = isValidTWOMDataFile(self)
