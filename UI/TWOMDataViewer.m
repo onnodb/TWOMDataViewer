@@ -70,6 +70,37 @@ classdef TWOMDataViewer < handle
             end
         end
 
+        function copyToFigure(self, whatToCopy, destination)
+            if isempty(self.file) || isempty(self.view.data) || self.view.data.isempty
+                warning('No data available to copy.');
+                return
+            end
+
+            switch whatToCopy
+                case {'fd','ft','dt'}
+                    % ok
+                otherwise
+                    error('Invalid argument "whatToCopy".');
+            end
+            if ischar(destination) && strcmpi(destination, 'new')
+                destination = TDVFigureWindow.create();
+            else
+                if ~TDVFigureWindow.isValidFigureWindow(destination)
+                    error('Invalid destination.');
+                end
+            end
+
+            if isempty(self.view.fdSubset)
+                TDVFigureWindow.addData(destination, self.view.data);
+            else
+                fdc = FdDataCollection();
+                for i = 1:self.view.data.length
+                    fdc.add(self.view.data.items{i}.subset('t', self.view.fdSubset));
+                end
+                TDVFigureWindow.addData(destination, fdc);
+            end
+        end
+
         function loadFile(self, file)
             self.file = [];
 
@@ -189,10 +220,21 @@ classdef TWOMDataViewer < handle
                     );
 
             % ----- Context menus
+            % x,t graph context menu
             self.gui.xtmenu.handle = uicontextmenu(self.gui.window);
             self.gui.xtmenu.zoom = uimenu(self.gui.xtmenu.handle ...
                     , 'Label',      'Zoom to Cursors' ...
                     , 'Callback',   @(h,e) self.onZoomCursors ...
+                    );
+
+            % F,d graph context menu
+            self.gui.fdmenu.handle = uicontextmenu(self.gui.window);
+            self.gui.fdmenu.copyToFigure = uimenu(self.gui.fdmenu.handle ...
+                    , 'Label',      'Copy to Figure' ...
+                    );
+            self.gui.fdmenu.copyToFigure_New = uimenu(self.gui.fdmenu.copyToFigure ...
+                    , 'Label',      'New Figure...' ...
+                    , 'Callback',   @(h,e) self.copyToFigure('fd', 'new') ...
                     );
 
             % ----- Main grid
@@ -272,7 +314,8 @@ classdef TWOMDataViewer < handle
                 addlistener(cur{1}, 'onReleased', @(h,e) self.onCursorReleased(h,e));
             end
 
-            % Add context menu to F,t / d,t plots
+            % Add context menus to plots
+            self.gui.plotfd.axes.UIContextMenu = self.gui.fdmenu.handle;
             self.gui.plotft.axes.UIContextMenu = self.gui.xtmenu.handle;
             self.gui.plotdt.axes.UIContextMenu = self.gui.xtmenu.handle;
 
