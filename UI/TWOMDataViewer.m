@@ -642,7 +642,9 @@ classdef TWOMDataViewer < handle
             % Refresh list of existing windows in "Copy to Figure" submenu.
             delete(findobj(self.gui.fdmenu.copyToFigure, 'Tag', 'existing'));
 
-            for hFig = TDVFigureWindow.findAll()
+            hFigs = TDVFigureWindow.findAll();
+            for i = 1:length(hFigs)
+                hFig = hFigs(i);
                 uimenu(self.gui.fdmenu.copyToFigure ...
                     , 'Label',      n_getFigCaption(hFig) ...
                     , 'Callback',   @(h,e) self.copyToFigure('fd', hFig) ...
