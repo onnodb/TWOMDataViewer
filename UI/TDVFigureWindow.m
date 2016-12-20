@@ -24,11 +24,7 @@ classdef TDVFigureWindow
                 for i = 1:fd.length
                     figFdc.add(fd.items{i});
                     hPlot = plot(fd.items{i}.d, fd.items{i}.f);
-                    set(hPlot ...
-                        , 'DisplayName',        fd.items{i}.name ...
-                        , 'UserData',           fd.items{i} ...
-                        , 'UIContextMenu',      TDVFigureWindow.getContextMenu(h) ...
-                        );
+                    TDVFigureWindow.setPlotProperties(hPlot, fd.items{i});
                 end
             else
                 error('Invalid argument "fd".');
@@ -40,9 +36,7 @@ classdef TDVFigureWindow
                       'Tag',            TDVFigureWindow.figureTag ...
                     , 'UserData',       FdDataCollection() ...
                     );
-            xlabel('Distance (um)');
-            ylabel('Force (pN)');
-            hold('on');
+            TDVFigureWindow.switchDisplay(hFig, 'fd');
 
             % Context menu for plots
             hMenu = uicontextmenu(hFig, 'Tag', TDVFigureWindow.plotContextMenuTag);
@@ -58,6 +52,25 @@ classdef TDVFigureWindow
 
             % Main menu items
             hDataMenu = uimenu('Label', 'Data');
+
+            hDataShowAsMenu = uimenu(hDataMenu, 'Label', 'Show As');
+            uimenu(hDataShowAsMenu ...
+                , 'Label',          'F,d Plot' ...
+                , 'Callback',       @(h,e) TDVFigureWindow.switchDisplay(hFig, 'fd') ...
+                );
+            uimenu(hDataShowAsMenu ...
+                , 'Label',          'F,t Plot' ...
+                , 'Callback',       @(h,e) TDVFigureWindow.switchDisplay(hFig, 'ft') ...
+                );
+            uimenu(hDataShowAsMenu ...
+                , 'Label',          'd,t Plot' ...
+                , 'Callback',       @(h,e) TDVFigureWindow.switchDisplay(hFig, 'dt') ...
+                );
+
+            uimenu(hDataMenu ...
+                , 'Label',          'Duplicate to New Window' ...
+                , 'Callback',       @(h,e) TDVFigureWindow.duplicate(hFig) ...
+                );
             uimenu(hDataMenu ...
                 , 'Label',          'Export All Data to Workspace' ...
                 , 'Callback',       @(h,e) TDVFigureWindow.exportData(hFig, 'all') ...
@@ -72,6 +85,12 @@ classdef TDVFigureWindow
                 fdc.remove(fd);
                 delete(gco(h));
             end
+        end
+
+        function duplicate(h)
+            TDVFigureWindow.checkValidFigureWindow(h);
+            h2 = TDVFigureWindow.create();
+            TDVFigureWindow.addData(h2, get(h, 'UserData'));
         end
 
         function exportData(h, whatToExport)
@@ -118,6 +137,44 @@ classdef TDVFigureWindow
             end
         end
 
+        function switchDisplay(h, newMode)
+            TDVFigureWindow.checkValidFigureWindow(h);
+
+            figure(h);
+            cla();
+
+            switch newMode
+                case 'fd'
+                    xlabel('Distance (um)');
+                    ylabel('Force (pN)');
+                case 'ft'
+                    xlabel('Time (s)');
+                    ylabel('Force (pN)');
+                case 'dt'
+                    xlabel('Time (s)');
+                    ylabel('Distance (um)');
+                otherwise
+                    error('Invalid display mode "%s".', newMode);
+            end
+            hold('on');
+
+            fdc = get(h, 'UserData');
+            if ~fdc.isempty
+                % Plot data
+                for i = 1:fdc.length
+                    switch newMode
+                        case 'fd'
+                            hPlot = plot(fdc.items{i}.d, fdc.items{i}.f);
+                        case 'ft'
+                            hPlot = plot(fdc.items{i}.t, fdc.items{i}.f);
+                        case 'dt'
+                            hPlot = plot(fdc.items{i}.t, fdc.items{i}.d);
+                    end
+                    TDVFigureWindow.setPlotProperties(hPlot, fdc.items{i});
+                end
+            end
+        end
+
     end
 
     % ------------------------------------------------------------------------
@@ -134,6 +191,14 @@ classdef TDVFigureWindow
             TDVFigureWindow.checkValidFigureWindow(h);
             hMenu = findobj(h, 'Type', 'uicontextmenu', ...
                             'Tag', TDVFigureWindow.plotContextMenuTag);
+        end
+
+        function setPlotProperties(hPlot, fd)
+            set(hPlot ...
+                , 'DisplayName',        fd.name ...
+                , 'UserData',           fd ...
+                , 'UIContextMenu',      TDVFigureWindow.getContextMenu(ancestor(hPlot, 'figure')) ...
+                );
         end
 
     end
