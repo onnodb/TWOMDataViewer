@@ -78,11 +78,14 @@ classdef TWOMDataFile < handle
             %       FdDataCollection.
 
             if ischar(forceChan) || isnumeric(forceChan)
-                forceChanNames = {n_parseForceChan(forceChan)};
+                [forceChanNames, friendlyForceChanNames] = n_parseForceChan(forceChan);
+                forceChanNames         = {forceChanNames};
+                friendlyForceChanNames = {friendlyForceChanNames};
             elseif iscell(forceChan)
-                forceChanNames = cell(length(forceChan),1);
+                forceChanNames         = cell(length(forceChan),1);
+                friendlyForceChanNames = cell(length(forceChan),1);
                 for i = 1:length(forceChan)
-                    forceChanNames{i} = n_parseForceChan(forceChan{i});
+                    [forceChanNames{i}, friendlyForceChanNames{i}] = n_parseForceChan(forceChan{i});
                 end
             else
                 error('Invalid argument "forceChan"');
@@ -133,7 +136,7 @@ classdef TWOMDataFile < handle
                 % TODO Add metadata to FdData objects
                 fdc.add(FdData(sprintf('%s - %s, %s', ...
                                        self.getTdmsProperty('name'), ...
-                                       forceChanNames{j}, distChanName), ...
+                                       friendlyForceChanNames{j}, distChanName), ...
                                f, d, t));
             end
             if ~iscell(forceChan) && (fdc.length == 1)
@@ -143,16 +146,20 @@ classdef TWOMDataFile < handle
             end
 
             % >> nested functions
-            function [fcName] = n_parseForceChan(fc)
+            function [fcName, friendlyFcName] = n_parseForceChan(fc)
                 if isnumeric(fc)
-                    fcName = sprintf('Force Channel %d (pN)', fc-1);
+                    fcName         = sprintf('Force Channel %d (pN)', fc-1);
+                    friendlyFcName = sprintf('Force Channel %d (pN)', fc);
                 elseif ischar(fc) && length(fc) == 3 && fc(1) == 'c'
                     forceIdx = str2num(fc(2));
                     chanIdx = 2*(forceIdx-1);
+                    friendlyFcName = sprintf('Force Trap %d', forceIdx);
                     if (fc(3) == 'x')
                         % ok
+                        friendlyFcName = [friendlyFcName ' - X'];
                     elseif (fc(3) == 'y')
                         chanIdx = chanIdx + 1;
+                        friendlyFcName = [friendlyFcName ' - Y'];
                     else
                         error('Invalid argument "forceChan".');
                     end
@@ -160,12 +167,14 @@ classdef TWOMDataFile < handle
                         error('Force channel index out of range.');
                     end
                     fcName = sprintf('Force Channel %d (pN)', chanIdx);
+                    friendlyFcName = [friendlyFcName ' (pN)'];
                 elseif ischar(fc) && length(fc) == 2 && fc(1) == 't'
                     forceIdx = str2num(fc(2));
                     if forceIdx*2 > self.NForceChannels
                         error('Force trap index out of range.');
                     end
-                    fcName = sprintf('Force Trap %d (pN)', forceIdx-1);
+                    fcName         = sprintf('Force Trap %d (pN)', forceIdx-1);
+                    friendlyFcName = sprintf('Force Trap %d (pN)', forceIdx);
                 else
                     error('Invalid argument "forceChan".');
                 end
