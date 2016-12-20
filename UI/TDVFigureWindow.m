@@ -41,6 +41,13 @@ classdef TDVFigureWindow
             hold('on');
         end
 
+        function [h] = findAll()
+            h = findobj(...
+                      'Type',           'figure' ...
+                    , 'Tag',            TDVFigureWindow.figureTag ...
+                    );
+        end
+
         function [b] = isValidFigureWindow(h)
             b = false;
             if isgraphics(h, 'figure')

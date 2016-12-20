@@ -228,7 +228,8 @@ classdef TWOMDataViewer < handle
                     );
 
             % F,d graph context menu
-            self.gui.fdmenu.handle = uicontextmenu(self.gui.window);
+            self.gui.fdmenu.handle = uicontextmenu(self.gui.window ...
+                    , 'Callback',   @(h,e) self.onFdMenuCallback(h,e) );
             self.gui.fdmenu.copyToFigure = uimenu(self.gui.fdmenu.handle ...
                     , 'Label',      'Copy to Figure' ...
                     );
@@ -604,6 +605,32 @@ classdef TWOMDataViewer < handle
                 self.uiToView_FDChannelSelection();
                 self.applyView();
             end
+        end
+
+        function onFdMenuCallback(self, ~, ~)
+            % Refresh list of existing windows in "Copy to Figure" submenu.
+            delete(findobj(self.gui.fdmenu.copyToFigure, 'Tag', 'existing'));
+
+            for hFig = TDVFigureWindow.findAll()
+                uimenu(self.gui.fdmenu.copyToFigure ...
+                    , 'Label',      n_getFigCaption(hFig) ...
+                    , 'Callback',   @(h,e) self.copyToFigure('fd', hFig) ...
+                    , 'Tag',        'existing' ...
+                    );
+            end
+
+            % >> nested functions
+            function [caption] = n_getFigCaption(h)
+                caption = get(h, 'Name');
+                if isempty(caption)
+                    if isempty(get(h, 'Number'))
+                        caption = sprintf('Figure %d', h);
+                    else
+                        caption = sprintf('Figure %d', get(h, 'Number'));
+                    end
+                end
+            end
+            % << nested functions
         end
 
         function onFileExit(self, ~, ~)
