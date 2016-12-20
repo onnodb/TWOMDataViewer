@@ -25,6 +25,7 @@ classdef TDVFigureWindow
                     figFdc.add(fd.items{i});
                     hPlot = plot(fd.items{i}.d, fd.items{i}.f);
                     set(hPlot ...
+                        , 'DisplayName',        fd.items{i}.name ...
                         , 'UserData',           fd.items{i} ...
                         , 'UIContextMenu',      TDVFigureWindow.getContextMenu(h) ...
                         );
@@ -46,8 +47,20 @@ classdef TDVFigureWindow
             % Context menu for plots
             hMenu = uicontextmenu(hFig, 'Tag', TDVFigureWindow.plotContextMenuTag);
             uimenu(hMenu ...
+                , 'Label',          'Export This Plot''s Data to Workspace' ...
+                , 'Callback',       @(h,e) TDVFigureWindow.exportData(hFig, 'selected') ...
+                );
+            uimenu(hMenu ...
+                , 'Separator',      'on' ...
                 , 'Label',          'Delete This Plot' ...
                 , 'Callback',       @(h,e) TDVFigureWindow.deleteSelectedData(hFig) ...
+                );
+
+            % Main menu items
+            hDataMenu = uimenu('Label', 'Data');
+            uimenu(hDataMenu ...
+                , 'Label',          'Export All Data to Workspace' ...
+                , 'Callback',       @(h,e) TDVFigureWindow.exportData(hFig, 'all') ...
                 );
         end
 
@@ -58,6 +71,35 @@ classdef TDVFigureWindow
                 fdc = get(h, 'UserData');
                 fdc.remove(fd);
                 delete(gco(h));
+            end
+        end
+
+        function exportData(h, whatToExport)
+            TDVFigureWindow.checkValidFigureWindow(h);
+            switch whatToExport
+                case 'all'
+                    fd = get(h, 'UserData');    % FdDataCollection
+                case 'selected'
+                    fd = get(gco(h), 'UserData');
+                    if ~isa(fd, 'FdData')
+                        return
+                    end
+                otherwise
+                    error('Invalid argument "whatToExport".');
+            end
+
+            name = inputdlg('Please enter a name for the workspace variable:');
+            if ~isempty(name) && ischar(name{1}) && ~isempty(name{1})
+                name = name{1};
+                if isvarname(name)
+                    assignin('base', name, fd);
+                    fprintf('The variable "%s" now contains the exported data:\n', name);
+                    disp(fd);
+                else
+                    errordlg(sprintf('The name "%s" is not a valid variable name.', name));
+                end
+            else
+                disp('Export cancelled');
             end
         end
 
