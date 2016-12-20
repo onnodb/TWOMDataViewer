@@ -101,6 +101,30 @@ classdef TWOMDataViewer < handle
             end
         end
 
+        function exportDataToWorkspace(self)
+            if isempty(self.file) || isempty(self.view.data)
+                return
+            end
+
+            name = inputdlg('Please enter a name for the workspace variable:');
+            if ~isempty(name) && ischar(name{1}) && ~isempty(name{1})
+                name = name{1};
+                if isvarname(name)
+                    fd = self.view.data;
+                    if fd.length == 1
+                        fd = fd.items{1};
+                    end
+                    assignin('base', name, fd);
+                    fprintf('The variable "%s" now contains the exported data:\n', name);
+                    disp(fd);
+                else
+                    errordlg(sprintf('The name "%s" is not a valid variable name.', name));
+                end
+            else
+                disp('Export cancelled');
+            end
+        end
+
         function loadFile(self, file)
             self.file = [];
 
@@ -218,6 +242,12 @@ classdef TWOMDataViewer < handle
             self.gui.menu.view_zoomOut = uimenu(self.gui.menu.view ...
                     , 'Label',      'Zoom Out' ...
                     , 'Callback',   @(h,e) self.onZoomOut ...
+                    );
+            % + Data
+            self.gui.menu.data = uimenu(self.gui.window, 'Label', 'Data');
+            self.gui.menu.data_exportToWorkspace = uimenu(self.gui.menu.data ...
+                    , 'Label',      'Export to Workspace' ...
+                    , 'Callback',   @(h,e) self.exportDataToWorkspace ...
                     );
 
             % ----- Context menus
