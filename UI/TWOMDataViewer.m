@@ -183,6 +183,17 @@ classdef TWOMDataViewer < handle
                     self.gui.plotdt.cur.Positions = self.view.fdSubset;
                 end
             end
+            if ~isempty(self.view.zoom)
+                % Ensure cursor positions don't fall outside zoom.
+                if self.view.fdSubset(1) < self.view.zoom(1)
+                    self.view.fdSubset(1) = self.view.zoom(1);
+                end
+                if self.view.fdSubset(2) > self.view.zoom(2)
+                    self.view.fdSubset(2) = self.view.zoom(2);
+                end
+                self.gui.plotft.cur.Positions = self.view.fdSubset;
+                self.gui.plotdt.cur.Positions = self.view.fdSubset;
+            end
 
             % Update zoom
             for ax = [self.gui.plotft.axes, self.gui.plotdt.axes]
@@ -253,9 +264,13 @@ classdef TWOMDataViewer < handle
             % ----- Context menus
             % x,t graph context menu
             self.gui.xtmenu.handle = uicontextmenu(self.gui.window);
-            self.gui.xtmenu.zoom = uimenu(self.gui.xtmenu.handle ...
+            self.gui.xtmenu.zoomCursors = uimenu(self.gui.xtmenu.handle ...
                     , 'Label',      'Zoom to Cursors' ...
                     , 'Callback',   @(h,e) self.onZoomCursors ...
+                    );
+            self.gui.xtmenu.zoomOut = uimenu(self.gui.xtmenu.handle ...
+                    , 'Label',      'Zoom Out' ...
+                    , 'Callback',   @(h,e) self.onZoomOut ...
                     );
 
             % F,d graph context menu
@@ -680,15 +695,17 @@ classdef TWOMDataViewer < handle
         function onMarksCallback(self, ~, ~)
             if ~isempty(self.file) && ~isempty(self.gui.marks.Value)
                 if isscalar(self.gui.marks.Value)
-                    self.gui.plotft.cur.Positions = ...
-                        [self.gui.marks.UserData{self.gui.marks.Value} ...
-                         max(self.gui.plotft.cur.Positions)];
+                    newPos = [self.gui.marks.UserData{self.gui.marks.Value} ...
+                              max(self.gui.plotft.cur.Positions)];
                 else
-                    self.gui.plotft.cur.Positions = ...
-                        [self.gui.marks.UserData{self.gui.marks.Value(1)} ...
-                         self.gui.marks.UserData{self.gui.marks.Value(2)} ];
+                    newPos = [self.gui.marks.UserData{self.gui.marks.Value(1)} ...
+                              self.gui.marks.UserData{self.gui.marks.Value(2)} ];
                 end
-                self.gui.plotdt.cur.Positions = self.gui.plotft.cur.Positions;
+                if newPos(1) == newPos(2)
+                    newPos(2) = max(self.view.data.items{1}.t);
+                end
+                self.gui.plotft.cur.Positions = newPos;
+                self.gui.plotdt.cur.Positions = newPos;
                 self.onCursorReleased();
             end
         end
