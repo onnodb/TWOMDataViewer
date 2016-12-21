@@ -13,6 +13,7 @@ classdef TWOMDataFile < handle
 
         DateTime;
         FileFormatVersion;
+        HasHiResFtData;
         ID;
 
         % Nx2 cell array, with metadata keys in the first column, and metadata
@@ -201,6 +202,83 @@ classdef TWOMDataFile < handle
             % << nested functions
         end
 
+        function [f, t] = getHiResFtData(self, forceChanIdx, timeRange)
+            if ~self.HasHiResFtData
+                error('No high-resolution F,t data available.');
+            end
+            if forceChanIdx > self.NForceChannels
+                error('Force channel index out of range.');
+            end
+            if nargin < 3
+                timeRange = [];
+            end
+
+            if isempty(timeRange)
+                subsGet = [];
+            else
+                if ~isvector(timeRange) || length(timeRange) ~= 2 || ~isnumeric(timeRange)
+                    error('Invalid argument "timeRange".');
+                end
+                [t1Idx, t2Idx] = n_findTimeRange(timeRange);
+                if (t1Idx == 0) || (t2Idx == 0)
+                    error('Time range for high-resolution F,t data not found.');
+                end
+                subsGet = [t1Idx t2Idx];
+            end
+
+            forceChanName = sprintf('Force Channel %d (pN)', forceChanIdx-1);
+
+            objGet = struct();
+            objGet.fullPathsKeep = { '/''Ft HiRes Data''/''Time (ms)''', ...
+                                    ['/''Ft HiRes Data''/''' forceChanName ''''] };
+
+            data = TDMS_readTDMSFile(self.Filename, ...
+                          'META_STRUCT',        self.tdmsMeta ...
+                        , 'GET_DATA_OPTION',    'getSubset' ...
+                        , 'OBJECTS_GET',        objGet ...
+                        , 'SUBSET_GET',         subsGet ...
+                        , 'SUBSET_IS_LENGTH',   false ...
+                        );
+            % Find data channels for this requested dataset in TDMS output
+            f = []; t = [];
+            for i = 1:length(data.data)
+                if strcmpi(self.tdmsMeta.groupNames{i}, 'Ft HiRes Data') ...
+                        && strcmpi(self.tdmsMeta.chanNames{i}, forceChanName)
+                    f = data.data{i};
+                elseif strcmpi(self.tdmsMeta.groupNames{i}, 'Ft HiRes Data') ...
+                        && strcmpi(self.tdmsMeta.chanNames{i}, 'Time (ms)')
+                    t = data.data{i};
+                end
+            end
+            if isempty(t)
+                error('Error retrieving data: data not found.');
+            end
+
+            % >> nested functions
+            function [t1, t2] = n_findTimeRange(range)
+                data = TDMS_readTDMSFile(self.Filename, ...
+                              'META_STRUCT',        self.tdmsMeta ...
+                            , 'GET_DATA_OPTION',    'getSubset' ...
+                            , 'OBJECTS_GET', ...
+                                struct('fullPathsKeep', ...
+                                       {{'/''Ft HiRes Data''/''Time (ms)'''}} ) ...
+                            );
+                t = [];
+                for k = 1:length(data.data)
+                    if strcmpi(self.tdmsMeta.groupNames{k}, 'Ft HiRes Data') ...
+                            && strcmpi(self.tdmsMeta.chanNames{k}, 'Time (ms)')
+                        t = data.data{k};
+                    end
+                end
+                if isempty(t)
+                    error('Error retrieving time data: data not found.');
+                end
+                t1 = findClosest_BinSearch(t, range(1));
+                t2 = findClosest_BinSearch(t, range(2));
+            end
+            % << nested functions
+        end
+
         function [marks] = getMarks(self)
             % GETMARKS Returns a list of data marks in the file
             %
@@ -243,6 +321,10 @@ classdef TWOMDataFile < handle
 
         function [val] = get.FileFormatVersion(self)
             val = uint8(sscanf(self.getTdmsProperty('File Format Version'), '%u'));
+        end
+
+        function [val] = get.HasHiResFtData(self)
+            val = any(strcmpi(self.tdmsMeta.groupNames, 'Ft HiRes Data'));
         end
 
         function [val] = get.ID(self)
