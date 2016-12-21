@@ -463,7 +463,8 @@ classdef TWOMDataViewer < handle
                 self.gui.marks.String = {};
                 self.gui.metadata.table.Data = {};
             else
-                self.gui.window.Name = sprintf('TWOM Data Viewer - [%s]', self.file.Filename);
+                [~, fileName, fileExt] = fileparts(self.file.Filename);
+                self.gui.window.Name = sprintf('TWOM Data Viewer - [%s%s]', fileName, fileExt);
 
                 % Load data marks
                 [self.gui.marks.String, self.gui.marks.UserData] = n_getMarksData();
