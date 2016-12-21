@@ -77,6 +77,7 @@ classdef TWOMDataFile < handle
             % fd = an FdData object, or, if forceChan was a cell array, an
             %       FdDataCollection.
 
+            % Parse force channel specification
             if ischar(forceChan) || isnumeric(forceChan)
                 [forceChanNames, friendlyForceChanNames] = n_parseForceChan(forceChan);
                 forceChanNames         = {forceChanNames};
@@ -91,6 +92,7 @@ classdef TWOMDataFile < handle
                 error('Invalid argument "forceChan"');
             end
 
+            % Parse distance channel specification
             if ischar(distChan)
                 distChan = str2num(distChan);
             end
@@ -103,6 +105,7 @@ classdef TWOMDataFile < handle
                 error('Invalid argument "distChan".');
             end
 
+            % Retrieve needed subset of TDMS file data
             objGet = struct();
             objGet.fullPathsKeep = {['/''FD Data''/''' distChanName  ''''], ...
                                      '/''FD Data''/''Time (ms)'''};
@@ -115,8 +118,10 @@ classdef TWOMDataFile < handle
                         , 'OBJECTS_GET',        objGet ...
                         );
 
+            % Assemble output FdDataCollection with requested data
             fdc = FdDataCollection();
             for j = 1:length(forceChanNames)
+                % Find data channels for this requested dataset in TDMS output
                 d = []; f = []; t = [];
                 for i = 1:length(data.data)
                     if strcmpi(self.tdmsMeta.groupNames{i}, 'FD Data') ...
@@ -133,12 +138,26 @@ classdef TWOMDataFile < handle
                 if isempty(d)
                     error('Error retrieving data: data not found.');
                 end
-                % TODO Add metadata to FdData objects
-                fdc.add(FdData(sprintf('%s - %s, %s', ...
-                                       self.getTdmsProperty('name'), ...
-                                       friendlyForceChanNames{j}, distChanName), ...
-                               f, d, t));
+
+                % Assemble FdData object containing data.
+                fd = FdData(sprintf('%s - %s, %s', ...
+                                    self.getTdmsProperty('name'), ...
+                                    friendlyForceChanNames{j}, distChanName), ...
+                            f, d, t);
+
+                % ... metadata
+                fd.metaData = self.tdmsStruct.Props;
+                fn = fieldnames(self.tdmsStruct.FD_Data.Props);
+                for k = 1:length(fn)
+                    fd.metaData.(fn{k}) = self.tdmsStruct.FD_Data.Props.(fn{k});
+                end
+
+                % ... add to FdDataCollection
+                fdc.add(fd);
             end
+
+            % Rectify output: just a single FdData object instead of an
+            % FdDataCollection when appropriate
             if ~iscell(forceChan) && (fdc.length == 1)
                 fd = fdc.items{1};
             else
