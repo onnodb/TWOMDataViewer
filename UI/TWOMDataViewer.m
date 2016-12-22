@@ -156,9 +156,12 @@ classdef TWOMDataViewer < handle
                 end
 
                 for i = 1:self.view.data.length
+                    plotUserData = { self.view.distChannel self.view.forceChannels{i} };
                     plot(self.gui.plotfd.axes, [NaN NaN], [NaN NaN], '.');
-                    plot(self.gui.plotft.axes, self.view.data.items{i}.t, self.view.data.items{i}.f, '.');
-                    plot(self.gui.plotdt.axes, self.view.data.items{i}.t, self.view.data.items{i}.d, '.');
+                    plot(self.gui.plotft.axes, self.view.data.items{i}.t, self.view.data.items{i}.f, ...
+                                 '.', 'UserData', plotUserData);
+                    plot(self.gui.plotdt.axes, self.view.data.items{i}.t, self.view.data.items{i}.d, ...
+                                 '.', 'UserData', plotUserData);
                 end
             end
 
@@ -207,13 +210,13 @@ classdef TWOMDataViewer < handle
             % >> nested functions
             function [b] = n_hasDataSelectionChanged()
                 currentD = 0;
-                plots = findobj(self.gui.plotft, 'Type', 'line', '-and', '-not', 'Tag', 'cursor');
+                plots = findobj(self.gui.plotft.axes, 'Type', 'line', '-and', '-not', 'Tag', 'cursor');
                 currentFItems = cell(size(plots));
                 for k = 1:length(plots)
                     currentD         = plots(k).UserData{1};
                     currentFItems{k} = plots(k).UserData{2};
                 end
-                b = ~isequal(sort(currentFItems), sort(self.view.forceChannels)) ...
+                b = ~isequal(sort(currentFItems(:)), sort(self.view.forceChannels(:))) ...
                     || (currentD ~= self.view.distChannel);
             end
             % << nested functions
