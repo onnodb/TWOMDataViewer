@@ -188,14 +188,12 @@ classdef TWOMDataViewer < handle
             end
             if ~isempty(self.view.zoom)
                 % Ensure cursor positions don't fall outside zoom.
-                if self.view.fdSubset(1) < self.view.zoom(1)
-                    self.view.fdSubset(1) = self.view.zoom(1);
+                if self.view.fdSubset(1) < self.view.zoom(1) ...
+                        || self.view.fdSubset(2) > self.view.zoom(2)
+                    self.view.fdSubset = self.view.zoom;
+                    self.gui.plotft.cur.Positions = self.view.fdSubset;
+                    self.gui.plotdt.cur.Positions = self.view.fdSubset;
                 end
-                if self.view.fdSubset(2) > self.view.zoom(2)
-                    self.view.fdSubset(2) = self.view.zoom(2);
-                end
-                self.gui.plotft.cur.Positions = self.view.fdSubset;
-                self.gui.plotdt.cur.Positions = self.view.fdSubset;
             end
 
             % Update zoom
@@ -368,6 +366,10 @@ classdef TWOMDataViewer < handle
             self.gui.plotfd.axes.UIContextMenu = self.gui.fdmenu.handle;
             self.gui.plotft.axes.UIContextMenu = self.gui.xtmenu.handle;
             self.gui.plotdt.axes.UIContextMenu = self.gui.xtmenu.handle;
+
+            % Add mouse click event handlers to x,t plots
+            self.gui.plotft.axes.ButtonDownFcn = @(h,e) self.onXtAxesButtonDown(h,e);
+            self.gui.plotdt.axes.ButtonDownFcn = @(h,e) self.onXtAxesButtonDown(h,e);
 
             self.gui.maingrid.centerpanel.Sizes = [-2 -1 -1];
 
@@ -720,6 +722,23 @@ classdef TWOMDataViewer < handle
                     self.gui.metadata.table.Data{e.Indices(1), e.Indices(2)};
             else
                 self.gui.metadata.details.String = '';
+            end
+        end
+
+        function onXtAxesButtonDown(self, h, e)
+            if ~isempty(self.file) && strcmp(self.gui.window.SelectionType, 'open') ...
+                    && ~isempty(self.view.zoom)
+                dx = self.gui.plotft.axes.XLim;
+                dz = (self.view.zoom(2)-self.view.zoom(1)) * 2/3;
+                if e.IntersectionPoint(1) < (dx(2)-dx(1))/3+dx(1)
+                    % Double-clicked on left 1/3 of axes: pan left
+                    self.view.zoom = self.view.zoom - dz;
+                    self.applyView();
+                elseif e.IntersectionPoint(1) > (dx(2)-dx(1))*2/3+dx(1)
+                    % Double-clicked on right 1/3 of axes: pan right
+                    self.view.zoom = self.view.zoom + dz;
+                    self.applyView();
+                end
             end
         end
 
