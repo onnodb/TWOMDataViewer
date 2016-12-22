@@ -182,6 +182,42 @@ classdef TWOMDataViewer < handle
             self.fileChanged();
         end
 
+        function plotHiResFtData(self)
+            if isempty(self.file) || isempty(self.view.data) ...
+                    || ~self.file.HasHiResFtData
+                return
+            end
+
+            channels = n_getChannels();
+            if isempty(channels)
+                errordlg(['No data to plot. Please select at least one X/Y force channel first. ' ...
+                          'Note that Force Trap Sum channels are not available.']);
+                return
+            end
+
+            fdc = self.file.getHiResFtData(channels, self.view.fdSubset*1000);
+            figure;
+            for i = 1:fdc.length
+                plot(fdc.items{i}.t/1000, fdc.items{i}.f, '.', ...
+                     'DisplayName', fdc.items{i}.name);
+                hold('on');
+            end
+            xlabel('Time (s)');
+            ylabel('Force (pN)');
+
+            % >> nested functions
+            function [c] = n_getChannels()
+                c = {};
+                for m = 1:length(self.view.forceChannels)
+                    if self.view.forceChannels{m}(1) == 'c'
+                        c{end+1} = self.view.forceChannels{m};
+                    end
+                end
+            end
+            % << nested functions
+        end
+
+
     end
 
     % ------------------------------------------------------------------------
@@ -306,6 +342,10 @@ classdef TWOMDataViewer < handle
             self.gui.menu.data_exportHiResToWorkspace = uimenu(self.gui.menu.data ...
                     , 'Label',      'Export High-Frequency F,t Data to Workspace' ...
                     , 'Callback',   @(h,e) self.exportHiResFtDataToWorkspace ...
+                    );
+            self.gui.menu.data_plotHiRes = uimenu(self.gui.menu.data ...
+                    , 'Label',      'Plot High-Frequency F,t Data' ...
+                    , 'Callback',   @(h,e) self.plotHiResFtData ...
                     );
 
             % ----- Context menus
@@ -514,7 +554,7 @@ classdef TWOMDataViewer < handle
                 self.gui.marks.String = {};
                 self.gui.metadata.table.Data = {};
 
-                self.gui.menu.data_exportHiResToWorkspace.Enable = 'off';
+                hiResEnable = 'off';
             else
                 [~, fileName, fileExt] = fileparts(self.file.Filename);
                 self.gui.window.Name = sprintf('TWOM Data Viewer - [%s%s]', fileName, fileExt);
@@ -532,11 +572,15 @@ classdef TWOMDataViewer < handle
 
                 % Enable/disable menu items
                 if self.file.HasHiResFtData
-                    self.gui.menu.data_exportHiResToWorkspace.Enable = 'on';
+                    hiResEnable = 'on';
                 else
-                    self.gui.menu.data_exportHiResToWorkspace.Enable = 'off';
+                    hiResEnable = 'off';
                 end
             end
+
+            % Enabled/disable menu items
+            self.gui.menu.data_exportHiResToWorkspace.Enable = hiResEnable;
+            self.gui.menu.data_plotHiRes.Enable = hiResEnable;
 
             self.resetView();
             self.uiToView_FDChannelSelection();
