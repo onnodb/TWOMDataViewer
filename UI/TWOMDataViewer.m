@@ -121,8 +121,53 @@ classdef TWOMDataViewer < handle
                     errordlg(sprintf('The name "%s" is not a valid variable name.', name));
                 end
             else
-                disp('Export cancelled');
+                disp('Export canceled.');
             end
+        end
+
+        function exportHiResFtDataToWorkspace(self)
+            if isempty(self.file) || isempty(self.view.data) ...
+                    || ~self.file.HasHiResFtData
+                return
+            end
+
+            chanIdxs = n_getChanIdxs();
+            if isempty(chanIdxs)
+                errordlg(['No data to export. Please select at least one X/Y force channel ' ...
+                          '(not a Force Trap Sum) first.']);
+                return
+            end
+
+            name = inputdlg('Please enter a name for the workspace variable:');
+            if ~isempty(name) && ischar(name{1}) && ~isempty(name{1})
+                name = name{1};
+                if isvarname(name)
+                    fd = self.file.getHiResFtData(chanIdxs, self.view.fdSubset);
+                    assignin('base', name, fd);
+                    fprintf('The variable "%s" now contains the exported data:\n', name);
+                    disp(fd);
+                else
+                    errordlg(sprintf('The name "%s" is not a valid variable name.', name));
+                end
+            else
+                disp('Export canceled.');
+            end
+
+            % >> nested functions
+            function [c] = n_getChanIdxs()
+                c = [];
+                for m = 1:length(self.view.forceChannels)
+                    if self.view.forceChannels{m}(1) == 'c'
+                        curTrapIdx = str2num(self.view.forceChannels{m}(2:end-1));
+                        curChanIdx = 2*(curTrapIdx-1)+1;
+                        if self.view.forceChannels{m}(end) == 'y'
+                            curChanIdx = curChanIdx + 1;
+                        end
+                        c(end+1) = curChanIdx;
+                    end
+                end
+            end
+            % << nested functions
         end
 
         function loadFile(self, file)
@@ -260,6 +305,10 @@ classdef TWOMDataViewer < handle
             self.gui.menu.data_exportToWorkspace = uimenu(self.gui.menu.data ...
                     , 'Label',      'Export to Workspace' ...
                     , 'Callback',   @(h,e) self.exportDataToWorkspace ...
+                    );
+            self.gui.menu.data_exportHiResToWorkspace = uimenu(self.gui.menu.data ...
+                    , 'Label',      'Export High-Frequency F,t Data to Workspace' ...
+                    , 'Callback',   @(h,e) self.exportHiResFtDataToWorkspace ...
                     );
 
             % ----- Context menus
@@ -467,6 +516,8 @@ classdef TWOMDataViewer < handle
                 self.gui.forcechan.UserData = {};
                 self.gui.marks.String = {};
                 self.gui.metadata.table.Data = {};
+
+                self.gui.menu.data_exportHiResToWorkspace.Enable = 'off';
             else
                 [~, fileName, fileExt] = fileparts(self.file.Filename);
                 self.gui.window.Name = sprintf('TWOM Data Viewer - [%s%s]', fileName, fileExt);
@@ -481,6 +532,13 @@ classdef TWOMDataViewer < handle
 
                 % Load metadata
                 self.gui.metadata.table.Data = self.file.MetaData;
+
+                % Enable/disable menu items
+                if self.file.HasHiResFtData
+                    self.gui.menu.data_exportHiResToWorkspace.Enable = 'on';
+                else
+                    self.gui.menu.data_exportHiResToWorkspace.Enable = 'off';
+                end
             end
 
             self.resetView();
