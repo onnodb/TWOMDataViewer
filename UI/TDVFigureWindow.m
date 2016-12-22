@@ -160,9 +160,9 @@ classdef TDVFigureWindow
                         case 'fd'
                             hPlot = plot(fdc.items{i}.d, fdc.items{i}.f);
                         case 'ft'
-                            hPlot = plot(fdc.items{i}.t, fdc.items{i}.f);
+                            hPlot = plot(fdc.items{i}.t/1000, fdc.items{i}.f);
                         case 'dt'
-                            hPlot = plot(fdc.items{i}.t, fdc.items{i}.d);
+                            hPlot = plot(fdc.items{i}.t/1000, fdc.items{i}.d);
                     end
                     TDVFigureWindow.setPlotProperties(hPlot, fdc.items{i});
                 end

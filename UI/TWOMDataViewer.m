@@ -96,7 +96,7 @@ classdef TWOMDataViewer < handle
             else
                 fdc = FdDataCollection();
                 for i = 1:self.view.data.length
-                    fdc.add(self.view.data.items{i}.subset('t', self.view.fdSubset));
+                    fdc.add(self.view.data.items{i}.subset('t', self.view.fdSubset*1000));
                 end
                 TDVFigureWindow.addData(destination, fdc);
             end
@@ -143,7 +143,7 @@ classdef TWOMDataViewer < handle
             if ~isempty(name) && ischar(name{1}) && ~isempty(name{1})
                 name = name{1};
                 if isvarname(name)
-                    fd = self.file.getHiResFtData(channels, self.view.fdSubset);
+                    fd = self.file.getHiResFtData(channels, self.view.fdSubset*1000);
                     assignin('base', name, fd);
                     fprintf('The variable "%s" now contains the exported data:\n', name);
                     disp(fd);
@@ -199,9 +199,9 @@ classdef TWOMDataViewer < handle
                 for i = 1:self.view.data.length
                     plotUserData = { self.view.distChannel self.view.forceChannels{i} };
                     plot(self.gui.plotfd.axes, [NaN NaN], [NaN NaN], '.');
-                    plot(self.gui.plotft.axes, self.view.data.items{i}.t, self.view.data.items{i}.f, ...
+                    plot(self.gui.plotft.axes, self.view.data.items{i}.t/1000, self.view.data.items{i}.f, ...
                                  '.', 'UserData', plotUserData);
-                    plot(self.gui.plotdt.axes, self.view.data.items{i}.t, self.view.data.items{i}.d, ...
+                    plot(self.gui.plotdt.axes, self.view.data.items{i}.t/1000, self.view.data.items{i}.d, ...
                                  '.', 'UserData', plotUserData);
                 end
             end
@@ -213,7 +213,7 @@ classdef TWOMDataViewer < handle
                 if isempty(self.view.fdSubset)
                     fd_subset = self.view.data.items{i};
                 else
-                    fd_subset = self.view.data.items{i}.subset('t', self.view.fdSubset);
+                    fd_subset = self.view.data.items{i}.subset('t', self.view.fdSubset*1000);
                 end
                 set(fdplots(i), 'XData', fd_subset.d, 'YData', fd_subset.f);
             end
@@ -222,7 +222,8 @@ classdef TWOMDataViewer < handle
             if isempty(self.view.fdSubset)
                 % Initialize cursor positions
                 if ~self.view.data.isempty
-                    self.view.fdSubset = [min(self.view.data.items{1}.t) max(self.view.data.items{1}.t)];
+                    self.view.fdSubset = [min(self.view.data.items{1}.t/1000) ...
+                                          max(self.view.data.items{1}.t/1000)];
                     self.gui.plotft.cur.Positions = self.view.fdSubset;
                     self.gui.plotdt.cur.Positions = self.view.fdSubset;
                 end
@@ -582,7 +583,7 @@ classdef TWOMDataViewer < handle
                 markUserData = cell(length(marks),1);
                 for i = 1:length(marks)
                     markStrings{i}  = sprintf('[%d] %s', marks(i).number, marks(i).comment);
-                    markUserData{i} = marks(i).t;
+                    markUserData{i} = marks(i).t/1000;
                 end
             end
             % << nested functions
@@ -762,7 +763,7 @@ classdef TWOMDataViewer < handle
                               self.gui.marks.UserData{self.gui.marks.Value(2)} ];
                 end
                 if newPos(1) == newPos(2)
-                    newPos(2) = max(self.view.data.items{1}.t);
+                    newPos(2) = max(self.view.data.items{1}.t/1000);
                 end
                 self.gui.plotft.cur.Positions = newPos;
                 self.gui.plotdt.cur.Positions = newPos;
