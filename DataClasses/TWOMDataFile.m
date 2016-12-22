@@ -78,33 +78,9 @@ classdef TWOMDataFile < handle
             % fd = an FdData object, or, if forceChan was a cell array, an
             %       FdDataCollection.
 
-            % Parse force channel specification
-            if ischar(forceChan) || isnumeric(forceChan)
-                [forceChanNames, friendlyForceChanNames] = n_parseForceChan(forceChan);
-                forceChanNames         = {forceChanNames};
-                friendlyForceChanNames = {friendlyForceChanNames};
-            elseif iscell(forceChan)
-                forceChanNames         = cell(length(forceChan),1);
-                friendlyForceChanNames = cell(length(forceChan),1);
-                for i = 1:length(forceChan)
-                    [forceChanNames{i}, friendlyForceChanNames{i}] = n_parseForceChan(forceChan{i});
-                end
-            else
-                error('Invalid argument "forceChan"');
-            end
-
-            % Parse distance channel specification
-            if ischar(distChan)
-                distChan = str2num(distChan);
-            end
-            if isnumeric(distChan) && isscalar(distChan)
-                if distChan < 1 || distChan > 2
-                    error('Distance channel out of range.');
-                end
-                distChanName = sprintf('Distance %d (um)', distChan);
-            else
-                error('Invalid argument "distChan".');
-            end
+            % Parse channel specs
+            [forceChanNames, friendlyForceChanNames] = self.parseForceChannelSpecArg(forceChan);
+            [distChanName, ~]                        = self.parseDistanceChannelSpec(distChan);
 
             % Retrieve needed subset of TDMS file data
             objGet = struct();
@@ -140,74 +116,27 @@ classdef TWOMDataFile < handle
                     error('Error retrieving data: data not found.');
                 end
 
-                % Assemble FdData object containing data.
-                fd = FdData(sprintf('%s - %s, %s', ...
-                                    self.getTdmsProperty('name'), ...
-                                    friendlyForceChanNames{j}, distChanName), ...
+                fd = self.makeFdDataObject(...
+                            [' - ' friendlyForceChanNames{j} ', ' distChanName], ...
                             f, d, t);
-
-                % ... metadata
-                fd.metaData = self.tdmsStruct.Props;
-                fn = fieldnames(self.tdmsStruct.FD_Data.Props);
-                for k = 1:length(fn)
-                    fd.metaData.(fn{k}) = self.tdmsStruct.FD_Data.Props.(fn{k});
-                end
-
-                % ... add to FdDataCollection
                 fdc.add(fd);
             end
 
             % Rectify output: just a single FdData object instead of an
-            % FdDataCollection when appropriate
+            % FdDataCollection when appropriate.
             if ~iscell(forceChan) && (fdc.length == 1)
                 fd = fdc.items{1};
             else
                 fd = fdc;
             end
-
-            % >> nested functions
-            function [fcName, friendlyFcName] = n_parseForceChan(fc)
-                if isnumeric(fc)
-                    fcName         = sprintf('Force Channel %d (pN)', fc-1);
-                    friendlyFcName = sprintf('Force Channel %d (pN)', fc);
-                elseif ischar(fc) && length(fc) == 3 && fc(1) == 'c'
-                    forceIdx = str2num(fc(2));
-                    chanIdx = 2*(forceIdx-1);
-                    friendlyFcName = sprintf('Force Trap %d', forceIdx);
-                    if (fc(3) == 'x')
-                        % ok
-                        friendlyFcName = [friendlyFcName ' - X'];
-                    elseif (fc(3) == 'y')
-                        chanIdx = chanIdx + 1;
-                        friendlyFcName = [friendlyFcName ' - Y'];
-                    else
-                        error('Invalid argument "forceChan".');
-                    end
-                    if chanIdx >= self.NForceChannels
-                        error('Force channel index out of range.');
-                    end
-                    fcName = sprintf('Force Channel %d (pN)', chanIdx);
-                    friendlyFcName = [friendlyFcName ' (pN)'];
-                elseif ischar(fc) && length(fc) == 2 && fc(1) == 't'
-                    forceIdx = str2num(fc(2));
-                    if forceIdx*2 > self.NForceChannels
-                        error('Force trap index out of range.');
-                    end
-                    fcName         = sprintf('Force Trap %d (pN)', forceIdx-1);
-                    friendlyFcName = sprintf('Force Trap %d (pN)', forceIdx);
-                else
-                    error('Invalid argument "forceChan".');
-                end
-            end
-            % << nested functions
         end
 
-        function [fd] = getHiResFtData(self, forceChanIdx, timeRange)
+        function [fd] = getHiResFtData(self, forceChan, timeRange)
             % GETHIRESFTDATA Returns high-resolution F,t data, if available
             %
             % INPUT:
-            % forceChanIdx = force channel index (1-based), or a vector of
-            %       indices.
+            % forceChan = see 'getFdData'. Note that trap channels are not
+            %       allowed here.
             % timeRange = if not empty (default), only force data for this time
             %       range is returned.
             %
@@ -218,21 +147,12 @@ classdef TWOMDataFile < handle
             if ~self.HasHiResFtData
                 error('No high-resolution F,t data available.');
             end
-            if ~isnumeric(forceChanIdx) || ~isvector(forceChanIdx)
-                error('Invalid argument "forceChanIdx".');
-            end
-            forceChanNames         = cell(length(forceChanIdx),1);
-            friendlyForceChanNames = cell(length(forceChanIdx),1);
-            for i = 1:length(forceChanIdx)
-                if forceChanIdx(i) < 1 || forceChanIdx(i) > self.NForceChannels
-                    error('Force channel index out of range.');
-                end
-                forceChanNames{i}         = sprintf('Force Channel %d (pN)', forceChanIdx(i)-1);
-                friendlyForceChanNames{i} = sprintf('Force Channel %d (pN)', forceChanIdx(i));
-            end
+
             if nargin < 3
                 timeRange = [];
             end
+
+            [forceChanNames, friendlyForceChanNames] = self.parseForceChannelSpecArg(forceChan, false);
 
             if isempty(timeRange)
                 subsGet = [];
@@ -277,20 +197,9 @@ classdef TWOMDataFile < handle
                     error('Error retrieving data: data not found.');
                 end
 
-                % Assemble FdData object containing data.
-                fd = FdData(sprintf('%s - %s (HiRes)', ...
-                                    self.getTdmsProperty('name'), ...
-                                    friendlyForceChanNames{j}), ...
+                fd = self.makeFdDataObject(...
+                            [' - ' friendlyForceChanNames{j}], ...
                             f, [], t);
-
-                % ... metadata
-                fd.metaData = self.tdmsStruct.Props;
-                fn = fieldnames(self.tdmsStruct.FD_Data.Props);
-                for m = 1:length(fn)
-                    fd.metaData.(fn{m}) = self.tdmsStruct.FD_Data.Props.(fn{m});
-                end
-
-                % ... add to FdDataCollection
                 fdc.add(fd);
             end
 
@@ -398,6 +307,23 @@ classdef TWOMDataFile < handle
     % ------------------------------------------------------------------------
 
     methods     % low-level methods
+
+        function [fd] = makeFdDataObject(self, nameSuffix, f, d, t)
+            fd = FdData(...
+                    [self.getTdmsProperty('name') nameSuffix], ...
+                    f, d, t ...
+                    );
+
+            % Add metadata
+            % ... file-level metadata
+            fd.metaData = self.tdmsStruct.Props;
+
+            % ... 'FD Data' group-level metadata
+            fn = fieldnames(self.tdmsStruct.FD_Data.Props);
+            for i = 1:length(fn)
+                fd.metaData.(fn{i}) = self.tdmsStruct.FD_Data.Props.(fn{i});
+            end
+        end
 
         function [val] = getTdmsProperty(self, path, default, varargin)
             % GETTDMSPROPERTY Get a single TDMS property value
@@ -543,6 +469,93 @@ classdef TWOMDataFile < handle
                 end
             % << nested functions
         end % function listTdmsProperties
+
+        function [tdmsChannelName, friendlyName] = parseDistanceChannelSpec(self, dc)
+            if ischar(dc)
+                dc = str2num(dc);
+            end
+            if isnumeric(dc) && isscalar(dc)
+                if dc < 1 || dc > 2
+                    error('Invalid distance channel specification: index out of range.');
+                end
+                tdmsChannelName = sprintf('Distance %d (um)', dc);
+                friendlyName    = tdmsChannelName;
+            else
+                error('Invalid distance channel specification: unknown type.');
+            end
+        end
+
+        function [tdmsChannelName, friendlyName] = parseForceChannelSpec(self, fc, allowTrapChannel)
+            if nargin < 3
+                allowTrapChannel = true;
+            end
+
+            if isnumeric(fc)
+                % numeric fc
+                tdmsChannelName = sprintf('Force Channel %d (pN)', fc-1);
+                friendlyName    = sprintf('Force Channel %d (pN)', fc);
+
+            elseif ischar(fc) && fc(1) == 'c' && length(fc) > 2
+                % fc = 'c1x', 'c3y', etc.
+                forceIdx = str2num(fc(2:end-1));
+                tdmsChanIdx = 2*(forceIdx-1);
+
+                friendlyName = sprintf('Force Trap %d', forceIdx);
+                if fc(end) == 'x'
+                    friendlyName = [friendlyName ' - X'];
+                elseif fc(end) == 'y'
+                    friendlyName = [friendlyName ' - Y'];
+                    tdmsChanIdx = tdmsChanIdx + 1;
+                else
+                    error('Invalid force channel specification "%s": malformed X/Y channel spec.', fc);
+                end
+                friendlyName = [friendlyName ' (pN)'];
+
+                if tdmsChanIdx >= self.NForceChannels
+                    error('Invalid force channel specification "%s": channel index out of range.', fc);
+                end
+                tdmsChannelName = sprintf('Force Channel %d (pN)', tdmsChanIdx);
+
+            elseif ischar(fc) && fc(1) == 't' && length(fc) > 1
+                % fc = 't1', 't3', etc.
+                if ~allowTrapChannel
+                    error('Invalid force channel specification: trap channel is not allowed here.');
+                end
+
+                forceIdx = str2num(fc(2:end));
+                if forceIdx*2 > self.NForceChannels
+                    error('Invalid force channel specification "%s": channel index out of range.', fc);
+                end
+
+                tdmsChannelName = sprintf('Force Trap %d (pN)', forceIdx-1);
+                friendlyName    = sprintf('Force Trap %d (pN)', forceIdx);
+
+            else
+                error('Invalid force channel specification "%s".', fc);
+            end
+        end
+
+        function [tdmsChannelNames, friendlyNames] = parseForceChannelSpecArg(self, fc, allowTrapChannel)
+            if nargin < 3
+                allowTrapChannel = true;
+            end
+
+            if ischar(fc) || (isnumeric(fc) && isscalar(fc))
+                fc = {fc};
+            elseif iscell(fc)
+                % ok
+            elseif isnumeric(fc) && isvector(fc)
+                fc = num2cell(fc);
+            else
+                error('Invalid force channel specification: unknown type.');
+            end
+
+            tdmsChannelNames = cell(length(fc),1);
+            friendlyNames    = cell(length(fc),1);
+            for i = 1:length(fc)
+                [tdmsChannelNames{i}, friendlyNames{i}] = self.parseForceChannelSpec(fc{i}, allowTrapChannel);
+            end
+        end
 
     end
 
