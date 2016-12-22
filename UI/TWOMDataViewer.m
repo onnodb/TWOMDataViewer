@@ -52,6 +52,7 @@ classdef TWOMDataViewer < handle
             else
                 self.browseTo(pwd());
             end
+            self.fileChanged();
         end
 
         function browseTo(self, newDir)
