@@ -202,12 +202,33 @@ classdef TWOMDataFile < handle
             % << nested functions
         end
 
-        function [f, t] = getHiResFtData(self, forceChanIdx, timeRange)
+        function [fd] = getHiResFtData(self, forceChanIdx, timeRange)
+            % GETHIRESFTDATA Returns high-resolution F,t data, if available
+            %
+            % INPUT:
+            % forceChanIdx = force channel index (1-based), or a vector of
+            %       indices.
+            % timeRange = if not empty (default), only force data for this time
+            %       range is returned.
+            %
+            % OUTPUT:
+            % fd = an FdData object, or, if forceChan was a vector, an
+            %       FdDataCollection.
+
             if ~self.HasHiResFtData
                 error('No high-resolution F,t data available.');
             end
-            if forceChanIdx > self.NForceChannels
-                error('Force channel index out of range.');
+            if ~isnumeric(forceChanIdx) || ~isvector(forceChanIdx)
+                error('Invalid argument "forceChanIdx".');
+            end
+            forceChanNames         = cell(length(forceChanIdx),1);
+            friendlyForceChanNames = cell(length(forceChanIdx),1);
+            for i = 1:length(forceChanIdx)
+                if forceChanIdx(i) < 1 || forceChanIdx(i) > self.NForceChannels
+                    error('Force channel index out of range.');
+                end
+                forceChanNames{i}         = sprintf('Force Channel %d (pN)', forceChanIdx(i)-1);
+                friendlyForceChanNames{i} = sprintf('Force Channel %d (pN)', forceChanIdx(i));
             end
             if nargin < 3
                 timeRange = [];
@@ -226,11 +247,11 @@ classdef TWOMDataFile < handle
                 subsGet = [t1Idx t2Idx];
             end
 
-            forceChanName = sprintf('Force Channel %d (pN)', forceChanIdx-1);
-
             objGet = struct();
-            objGet.fullPathsKeep = { '/''Ft HiRes Data''/''Time (ms)''', ...
-                                    ['/''Ft HiRes Data''/''' forceChanName ''''] };
+            objGet.fullPathsKeep = { '/''Ft HiRes Data''/''Time (ms)''' };
+            for i = 1:length(forceChanNames)
+                objGet.fullPathsKeep{end+1} = ['/''Ft HiRes Data''/''' forceChanNames{i} ''''];
+            end
 
             data = TDMS_readTDMSFile(self.Filename, ...
                           'META_STRUCT',        self.tdmsMeta ...
@@ -240,18 +261,45 @@ classdef TWOMDataFile < handle
                         , 'SUBSET_IS_LENGTH',   false ...
                         );
             % Find data channels for this requested dataset in TDMS output
-            f = []; t = [];
-            for i = 1:length(data.data)
-                if strcmpi(self.tdmsMeta.groupNames{i}, 'Ft HiRes Data') ...
-                        && strcmpi(self.tdmsMeta.chanNames{i}, forceChanName)
-                    f = data.data{i};
-                elseif strcmpi(self.tdmsMeta.groupNames{i}, 'Ft HiRes Data') ...
-                        && strcmpi(self.tdmsMeta.chanNames{i}, 'Time (ms)')
-                    t = data.data{i};
+            fdc = FdDataCollection();
+            for j = 1:length(forceChanNames)
+                f = []; t = [];
+                for i = 1:length(data.data)
+                    if strcmpi(self.tdmsMeta.groupNames{i}, 'Ft HiRes Data') ...
+                            && strcmpi(self.tdmsMeta.chanNames{i}, forceChanNames{j})
+                        f = data.data{i};
+                    elseif strcmpi(self.tdmsMeta.groupNames{i}, 'Ft HiRes Data') ...
+                            && strcmpi(self.tdmsMeta.chanNames{i}, 'Time (ms)')
+                        t = data.data{i};
+                    end
                 end
+                if isempty(t)
+                    error('Error retrieving data: data not found.');
+                end
+
+                % Assemble FdData object containing data.
+                fd = FdData(sprintf('%s - %s (HiRes)', ...
+                                    self.getTdmsProperty('name'), ...
+                                    friendlyForceChanNames{j}), ...
+                            f, [], t);
+
+                % ... metadata
+                fd.metaData = self.tdmsStruct.Props;
+                fn = fieldnames(self.tdmsStruct.FD_Data.Props);
+                for m = 1:length(fn)
+                    fd.metaData.(fn{m}) = self.tdmsStruct.FD_Data.Props.(fn{m});
+                end
+
+                % ... add to FdDataCollection
+                fdc.add(fd);
             end
-            if isempty(t)
-                error('Error retrieving data: data not found.');
+
+            % Rectify output: just a single FdData object instead of an
+            % FdDataCollection when appropriate
+            if fdc.length == 1
+                fd = fdc.items{1};
+            else
+                fd = fdc;
             end
 
             % >> nested functions

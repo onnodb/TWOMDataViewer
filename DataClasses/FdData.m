@@ -1,8 +1,8 @@
 classdef FdData < matlab.mixin.Copyable
-    % FDDATA Object storing F,d,t data
+    % FDDATA Object storing F,d,t or F,t data
     %
     % This is a simple data storage object for storing force-extension data
-    % (plus associated time data).
+    % (plus associated time data); or, alternatively, force-time data.
     %
     % FdData objects also support some other convenience features, such as:
     %
@@ -24,6 +24,7 @@ classdef FdData < matlab.mixin.Copyable
     properties (Dependent=true)
 
         % Distance values (um)
+        % NOTE: Can be empty, in case only F,t data is stored.
         d;
 
         % Force values (pN)
@@ -33,6 +34,9 @@ classdef FdData < matlab.mixin.Copyable
         t;
 
         % ----- Read-only properties
+
+        % Does the object contain distance data?
+        hasDistanceData;
 
         % Associated tags combined into one string
         tagString;
@@ -81,7 +85,7 @@ classdef FdData < matlab.mixin.Copyable
     properties (Access=protected)
 
         % Internal storage for actual force/distance/time data.
-        % (column 1: force; column 2: distance; column 3: time)
+        % (column 1: time; column 2: force; column 3: distance)
         data = [];
 
     end
@@ -104,7 +108,7 @@ classdef FdData < matlab.mixin.Copyable
             %
             % INPUT:
             % f_values = force values (pN)
-            % d_values = distance values (um)
+            % d_values = distance values (um); allowed to be an empty array []
             % t_values = time values (ms)
             % metaData = metadata struct (see "metaData" property).
             % marks = data marks information (see "marks" property).
@@ -454,7 +458,9 @@ classdef FdData < matlab.mixin.Copyable
 
             switch axis
                 case 'd'
-                    fdScaled.d = fdScaled.d .* factor;
+                    if self.hasDistanceData
+                        fdScaled.d = fdScaled.d .* factor;
+                    end
                 case 'f'
                     fdScaled.f = fdScaled.f .* factor;
                 case 't'
@@ -468,15 +474,23 @@ classdef FdData < matlab.mixin.Copyable
 
         function setFDT(self, newF, newD, newT)
             % SETFDT Updates the F, d and t data all at once.
+            %
+            % NOTE: newD is allowed to be empty, in case this FdData object is
+            % only used to store F,t data.
 
             if ~isreal(newF) || ~isreal(newD) || ~isreal(newT)
                 error('FdData:invalidArgument', 'Invalid arguments: real vectors expected');
             end
-            if length(newF) ~= length(newD) || length(newD) ~= length(newT)
+            if length(newT) ~= length(newF) || ...
+                    ( (length(newT) ~= length(newD)) && ~isempty(newD) )
                 error('FdData:invalidDataDimension', 'Invalid data dimensions: lengths of new F,D,T should be equal');
             end
 
-            self.data = [newF(:) newD(:) newT(:)];
+            if isempty(newD)
+                self.data = [newT(:) newF(:)];
+            else
+                self.data = [newT(:) newF(:) newD(:)];
+            end
         end
 
         function [fdShifted] = shift(self, axis, amount)
@@ -498,7 +512,9 @@ classdef FdData < matlab.mixin.Copyable
 
             switch axis
                 case 'd'
-                    fdShifted.d = fdShifted.d + amount;
+                    if self.hasDistanceData
+                        fdShifted.d = fdShifted.d + amount;
+                    end
                 case 'f'
                     fdShifted.f = fdShifted.f + amount;
                 case 't'
@@ -531,7 +547,11 @@ classdef FdData < matlab.mixin.Copyable
 
             switch axis
                 case 'd'
-                    subset_indices = self.d >= range(1) & self.d <= range(2);
+                    if self.hasDistanceData
+                        subset_indices = self.d >= range(1) & self.d <= range(2);
+                    else
+                        subset_indices = true(size(self.data,1),1);
+                    end
                 case 'f'
                     subset_indices = self.f >= range(1) & self.f <= range(2);
                 case 't'
@@ -552,27 +572,39 @@ classdef FdData < matlab.mixin.Copyable
     methods
 
         function [d] = get.d(self)
-            d = self.data(:,2);
+            if self.hasDistanceData
+                d = self.data(:,3);
+            else
+                d = [];
+            end
         end
 
         function set.d(self, newD)
-            if length(newD) == size(self.data, 1)
-                self.data(:,2) = newD;
+            if self.hasDistanceData
+                if length(newD) == size(self.data, 1)
+                    self.data(:,3) = newD;
+                else
+                    error('FdData:invalidDataDimension', 'Invalid length for new "d" value');
+                end
             else
-                error('FdData:invalidDataDimension', 'Invalid length for new "d" value');
+                error('FdData:noDistanceData', 'This FdData object does not contain distance data');
             end
         end
 
         function [f] = get.f(self)
-            f = self.data(:,1);
+            f = self.data(:,2);
         end
 
         function set.f(self, newF)
             if length(newF) == size(self.data, 1)
-                self.data(:,1) = newF;
+                self.data(:,2) = newF;
             else
                 error('FdData:invalidDataDimension', 'Invalid length for new "f" value');
             end
+        end
+
+        function [val] = get.hasDistanceData(self)
+            val = (size(self.data,2) == 3);
         end
 
         function set.metaData(self, newMetaData)
@@ -584,12 +616,12 @@ classdef FdData < matlab.mixin.Copyable
         end
 
         function [t] = get.t(self)
-            t = self.data(:,3);
+            t = self.data(:,1);
         end
 
         function set.t(self, newT)
             if length(newT) == size(self.data, 1)
-                self.data(:,3) = newT;
+                self.data(:,1) = newT;
             else
                 error('FdData:invalidDataDimension', 'Invalid length for new "t" value');
             end
