@@ -131,10 +131,10 @@ classdef TWOMDataViewer < handle
                 return
             end
 
-            chanIdxs = n_getChanIdxs();
-            if isempty(chanIdxs)
-                errordlg(['No data to export. Please select at least one X/Y force channel ' ...
-                          '(not a Force Trap Sum) first.']);
+            channels = n_getChannels();
+            if isempty(channels)
+                errordlg(['No data to export. Please select at least one X/Y force channel first. ' ...
+                          'Note that Force Trap Sum channels are not available.']);
                 return
             end
 
@@ -142,7 +142,7 @@ classdef TWOMDataViewer < handle
             if ~isempty(name) && ischar(name{1}) && ~isempty(name{1})
                 name = name{1};
                 if isvarname(name)
-                    fd = self.file.getHiResFtData(chanIdxs, self.view.fdSubset);
+                    fd = self.file.getHiResFtData(channels, self.view.fdSubset);
                     assignin('base', name, fd);
                     fprintf('The variable "%s" now contains the exported data:\n', name);
                     disp(fd);
@@ -154,16 +154,11 @@ classdef TWOMDataViewer < handle
             end
 
             % >> nested functions
-            function [c] = n_getChanIdxs()
-                c = [];
+            function [c] = n_getChannels()
+                c = {};
                 for m = 1:length(self.view.forceChannels)
                     if self.view.forceChannels{m}(1) == 'c'
-                        curTrapIdx = str2num(self.view.forceChannels{m}(2:end-1));
-                        curChanIdx = 2*(curTrapIdx-1)+1;
-                        if self.view.forceChannels{m}(end) == 'y'
-                            curChanIdx = curChanIdx + 1;
-                        end
-                        c(end+1) = curChanIdx;
+                        c{end+1} = self.view.forceChannels{m};
                     end
                 end
             end
