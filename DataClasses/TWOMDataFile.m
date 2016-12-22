@@ -205,7 +205,7 @@ classdef TWOMDataFile < handle
 
             % Rectify output: just a single FdData object instead of an
             % FdDataCollection when appropriate
-            if fdc.length == 1
+            if ~iscell(forceChan) && (fdc.length == 1)
                 fd = fdc.items{1};
             else
                 fd = fdc;
