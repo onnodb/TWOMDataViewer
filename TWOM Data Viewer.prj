@@ -1,0 +1,209 @@
+<deployment-project plugin="plugin.apptool" plugin-version="1.0">
+  <configuration build-checksum="1263664347" file="/Users/onno/Dev/TWOMDV/TWOM Data Viewer.prj" location="/Users/onno/Dev/TWOMDV" name="TWOM Data Viewer" target="target.mlapps" target-name="Package App">
+    <param.appname>TWOM Data Viewer</param.appname>
+    <param.authnamewatermark>Onno Broekmans</param.authnamewatermark>
+    <param.email>support@lumicks.com</param.email>
+    <param.company>LUMICKS B.V.</param.company>
+    <param.icon />
+    <param.icons />
+    <param.summary>Data viewer for TWOM data files.</param.summary>
+    <param.description>Data viewer application for data files written by the TWOM / Lumicks Optical Tweezers software.</param.description>
+    <param.screenshot />
+    <param.version>1.0</param.version>
+    <param.products.name>
+      <item>MATLAB</item>
+      <item>Parallel Computing Toolbox</item>
+    </param.products.name>
+    <param.products.id>
+      <item>'1'</item>
+      <item>'80'</item>
+    </param.products.id>
+    <param.products.version>
+      <item>8.4</item>
+      <item>6.5</item>
+    </param.products.version>
+    <param.platforms />
+    <param.output>${PROJECT_ROOT}/TWOM Data Viewer.mlappinstall</param.output>
+    <param.guid>2ba2403b-3b48-486c-9c7d-2d84389f87c0</param.guid>
+    <unset>
+      <param.icon />
+      <param.icons />
+      <param.screenshot />
+      <param.version />
+      <param.platforms />
+    </unset>
+    <fileset.main>
+      <file>${PROJECT_ROOT}/twomdv.m</file>
+    </fileset.main>
+    <fileset.depfun>
+      <file>${PROJECT_ROOT}/Analysis/averageFdData.m</file>
+      <file>${PROJECT_ROOT}/DataClasses/FdData.m</file>
+      <file>${PROJECT_ROOT}/DataClasses/FdDataCollection.m</file>
+      <file>${PROJECT_ROOT}/DataClasses/TWOMDataFile.m</file>
+      <file>${PROJECT_ROOT}/DataLoading/readasciifile.m</file>
+      <file>${PROJECT_ROOT}/DataLoading/readasciifolder.m</file>
+      <file>${PROJECT_ROOT}/DataLoading/readdatafolder.m</file>
+      <file>${PROJECT_ROOT}/DataLoading/readexcelfile.m</file>
+      <file>${PROJECT_ROOT}/DataLoading/readexcelfolder.m</file>
+      <file>${PROJECT_ROOT}/DataLoading/readtdmsfile.m</file>
+      <file>${PROJECT_ROOT}/DataLoading/readtdmsfolder.m</file>
+      <file>${PROJECT_ROOT}/DataLoading/trimfd.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uiextras/BoxPanel.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uiextras/CardPanel.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uiextras/Empty.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uiextras/Grid.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uiextras/GridFlex.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uiextras/HBox.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uiextras/HBoxFlex.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uiextras/HButtonBox.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uiextras/Panel.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uiextras/TabPanel.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uiextras/VBox.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uiextras/VBoxFlex.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uiextras/VButtonBox.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uiextras/get.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uiextras/set.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uiextras/unset.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/+mixin/Container.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/AncestryObserver.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/Box.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/BoxPanel.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/ButtonBox.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/CardPanel.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/ChildEvent.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/ChildObserver.current</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/ChildObserver.halfbaked</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/ChildObserver.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/Container.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/Divider.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/Empty.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/Grid.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/GridFlex.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/HBox.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/HBoxFlex.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/HButtonBox.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/Image.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/LocationObserver.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/Node.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/Panel.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/Resources/panelClose.png</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/Resources/panelDock.png</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/Resources/panelHelp.png</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/Resources/panelMaximize.png</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/Resources/panelMinimize.png</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/Resources/panelUndock.png</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/Resources/tab_NoEdge_NotSelected.png</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/Resources/tab_NoEdge_Selected.png</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/Resources/tab_NotSelected_NoEdge.png</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/Resources/tab_NotSelected_NotSelected.png</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/Resources/tab_NotSelected_Selected.png</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/Resources/tab_Selected_NoEdge.png</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/Resources/tab_Selected_NotSelected.png</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/SelectionEvent.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/TabPanel.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/VBox.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/VBoxFlex.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/VButtonBox.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/VisibilityObserver.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/ancestors.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/calcPixelSizes.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/inrectangle.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/loadIcon.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/+uix/pvchk.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/Contents.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/README.txt</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/layoutRoot.m</file>
+      <file>${PROJECT_ROOT}/Lib/GUILayout/license.txt</file>
+      <file>${PROJECT_ROOT}/Lib/ParforProgressDummy.m</file>
+      <file>${PROJECT_ROOT}/Lib/TDMSReader/README.txt</file>
+      <file>${PROJECT_ROOT}/Lib/TDMSReader/TDMS_dataToGroupChanStruct_v1.m</file>
+      <file>${PROJECT_ROOT}/Lib/TDMSReader/TDMS_dataToGroupChanStruct_v2.m</file>
+      <file>${PROJECT_ROOT}/Lib/TDMSReader/TDMS_dataToGroupChanStruct_v3.m</file>
+      <file>${PROJECT_ROOT}/Lib/TDMSReader/TDMS_dataToGroupChanStruct_v4.m</file>
+      <file>${PROJECT_ROOT}/Lib/TDMSReader/TDMS_getStruct.m</file>
+      <file>${PROJECT_ROOT}/Lib/TDMSReader/TDMS_readChannelOrGroup.m</file>
+      <file>${PROJECT_ROOT}/Lib/TDMSReader/TDMS_readTDMSFile.m</file>
+      <file>${PROJECT_ROOT}/Lib/TDMSReader/license.txt</file>
+      <file>${PROJECT_ROOT}/Lib/TDMSReader/private/TDMS_Documentation.m</file>
+      <file>${PROJECT_ROOT}/Lib/TDMSReader/private/TDMS_TODO_List.m</file>
+      <file>${PROJECT_ROOT}/Lib/TDMSReader/private/TDMS_VERSION_INFO.m</file>
+      <file>${PROJECT_ROOT}/Lib/TDMSReader/private/TDMS_exampleFunctionCalls.m</file>
+      <file>${PROJECT_ROOT}/Lib/TDMSReader/private/TDMS_fileFormatNotes.m</file>
+      <file>${PROJECT_ROOT}/Lib/TDMSReader/tdmsSubfunctions/TDMS_genvarname2.m</file>
+      <file>${PROJECT_ROOT}/Lib/TDMSReader/tdmsSubfunctions/TDMS_getDataSize.m</file>
+      <file>${PROJECT_ROOT}/Lib/TDMSReader/tdmsSubfunctions/TDMS_getDataTypeName.m</file>
+      <file>${PROJECT_ROOT}/Lib/TDMSReader/tdmsSubfunctions/TDMS_getGroupChanNames.m</file>
+      <file>${PROJECT_ROOT}/Lib/TDMSReader/tdmsSubfunctions/TDMS_getPropValue.m</file>
+      <file>${PROJECT_ROOT}/Lib/TDMSReader/tdmsSubfunctions/TDMS_getTypeSeekSizes.m</file>
+      <file>${PROJECT_ROOT}/Lib/TDMSReader/tdmsSubfunctions/TDMS_handleGetDataOption.m</file>
+      <file>${PROJECT_ROOT}/Lib/TDMSReader/tdmsSubfunctions/TDMS_initData.m</file>
+      <file>${PROJECT_ROOT}/Lib/TDMSReader/tdmsSubfunctions/TDMS_preprocessFile.m</file>
+      <file>${PROJECT_ROOT}/Lib/TDMSReader/tdmsSubfunctions/TDMS_processLeadIn.m</file>
+      <file>${PROJECT_ROOT}/Lib/TDMSReader/tdmsSubfunctions/TDMS_rawDAQMx.m</file>
+      <file>${PROJECT_ROOT}/Lib/TDMSReader/tdmsSubfunctions/TDMS_readFileHelper_v1.m</file>
+      <file>${PROJECT_ROOT}/Lib/TDMSReader/tdmsSubfunctions/TDMS_readFileHelper_v2.m</file>
+      <file>${PROJECT_ROOT}/Lib/TDMSReader/tdmsSubfunctions/TDMS_retrievingSubsets.m</file>
+      <file>${PROJECT_ROOT}/Lib/cursors.m</file>
+      <file>${PROJECT_ROOT}/Lib/cursorsData.m</file>
+      <file>${PROJECT_ROOT}/Lib/doParforProgressStarter.m</file>
+      <file>${PROJECT_ROOT}/Lib/dsxy2figxy.m</file>
+      <file>${PROJECT_ROOT}/Lib/findClosest_BinSearch.m</file>
+      <file>${PROJECT_ROOT}/Lib/gethomedir.m</file>
+      <file>${PROJECT_ROOT}/Lib/normalizepath.m</file>
+      <file>${PROJECT_ROOT}/Lib/parseArgs.m</file>
+      <file>${PROJECT_ROOT}/Lib/parseClassArgs.m</file>
+      <file>${PROJECT_ROOT}/Plotting/plotfd.m</file>
+      <file>${PROJECT_ROOT}/UI/TWOMDataViewer.m</file>
+      <file>/Users/onno/Documents/MATLAB/Lib/ParforProgress2/ParforProgress2.m</file>
+      <file>/Users/onno/Documents/MATLAB/Lib/ParforProgress2/ParforProgressConsole2.m</file>
+      <file>/Users/onno/Documents/MATLAB/Lib/ParforProgress2/ParforProgressStarter2.m</file>
+      <file>/Users/onno/Documents/MATLAB/Lib/ParforProgress2/get_matlab_version.m</file>
+      <file>/Users/onno/Documents/MATLAB/Lib/ParforProgress2/pool_size.m</file>
+    </fileset.depfun>
+    <fileset.resources>
+      <file>${PROJECT_ROOT}/Analysis</file>
+      <file>${PROJECT_ROOT}/DataClasses</file>
+      <file>${PROJECT_ROOT}/DataLoading</file>
+      <file>${PROJECT_ROOT}/Lib</file>
+      <file>${PROJECT_ROOT}/Plotting</file>
+      <file>${PROJECT_ROOT}/UI/TDVFigureWindow.m</file>
+    </fileset.resources>
+    <fileset.package />
+    <build-deliverables>
+      <file location="/Users/onno/Dev/TWOMDV" name="TWOM Data Viewer.mlappinstall" optional="false">/Users/onno/Dev/TWOMDV/TWOM Data Viewer.mlappinstall</file>
+    </build-deliverables>
+    <workflow />
+    <matlab>
+      <root>/Applications/MATLAB_R2014b.app</root>
+      <toolboxes>
+        <toolbox name="fixedpoint" />
+        <toolbox name="matlabcoder" />
+      </toolboxes>
+      <toolbox>
+        <fixedpoint>
+          <enabled>true</enabled>
+        </fixedpoint>
+      </toolbox>
+      <toolbox>
+        <matlabcoder>
+          <enabled>true</enabled>
+        </matlabcoder>
+      </toolbox>
+    </matlab>
+    <platform>
+      <unix>true</unix>
+      <mac>true</mac>
+      <windows>false</windows>
+      <win2k>false</win2k>
+      <winxp>false</winxp>
+      <vista>false</vista>
+      <linux>false</linux>
+      <solaris>false</solaris>
+      <osver>10.10.5</osver>
+      <os32>false</os32>
+      <os64>true</os64>
+      <arch>maci64</arch>
+      <matlab>true</matlab>
+    </platform>
+  </configuration>
+</deployment-project>

@@ -1,4 +1,4 @@
-function twomdv(varargin)
+function [h] = twomdv(varargin)
 % TWOMDV UI for exploring TWOM Data Files on disk.
 %
 % SYNTAX:
@@ -14,6 +14,8 @@ if ~isempty(varargin)
 else
     twomdv = TWOMDataViewer();
 end
+
+h = twomdv.guiHandle;
 
 if ~isempty(varargin)
     if length(varargin) > 1

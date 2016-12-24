@@ -43,6 +43,14 @@ classdef TWOMDataViewer < handle
 
     % ------------------------------------------------------------------------
 
+    properties (Dependent)
+
+        guiHandle;
+
+    end
+
+    % ------------------------------------------------------------------------
+
     methods
 
         function [self] = TWOMDataViewer(initialDir)
@@ -854,6 +862,16 @@ classdef TWOMDataViewer < handle
                 self.view.zoom = [];
                 self.applyView();
             end
+        end
+
+    end
+
+    % ------------------------------------------------------------------------
+
+    methods % Getters/Setters
+
+        function [val] = get.guiHandle(self)
+            val = self.gui.window;
         end
 
     end
